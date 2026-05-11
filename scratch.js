@@ -1,48 +1,11 @@
-'use client';
+const fs = require('fs');
+const content = fs.readFileSync('app/page.tsx', 'utf8');
 
-import React, { useState } from 'react';
-import KakaoMap from '../components/map/Kakao';
-import SearchBar from '../components/charger/SearchBar';
-import ChargerList from '../components/charger/ChargerList';
-import { useChargerData } from '../hooks/useChargerData';
-import { getStatColor, getStatLabel, getStationStats, getStationRepresentativeStat } from '../types/charger';
+// Find the start of the return statement
+const returnStart = content.indexOf('return (');
 
-export default function Home() {
-  const {
-    chargers,
-    loading,
-    statusLoading,
-    error,
-    districts,
-    activeDistrict,
-    setActiveDistrict,
-    chargeFilter,
-    setChargeFilter,
-    searchQuery,
-    setSearchQuery,
-    selectedCharger,
-    setSelectedCharger,
-    filteredChargers,
-    searchResults
-  } = useChargerData();
-
-  const [isListExpanded, setIsListExpanded] = useState(false);
-
-  React.useEffect(() => {
-    if (chargers.length > 0 && typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const searchParam = params.get('search');
-      if (searchParam) {
-        const found = chargers.find(c => c.name === searchParam);
-        if (found) {
-          setSelectedCharger(found);
-          setActiveDistrict(found.district);
-        }
-      }
-    }
-  }, [chargers, setSelectedCharger, setActiveDistrict]);
-
-    return (
+// We want to replace the whole return block.
+const newReturn = `  return (
     <>
       {error && (
         <div className="bg-red-50 text-red-500 p-4 rounded-xl text-center shadow-sm">
@@ -161,11 +124,11 @@ export default function Home() {
         </div>
 
         {/* Mobile List View Sheet */}
-        <div className={`
+        <div className={\`
             md:hidden absolute bottom-0 left-0 right-0 z-30 transition-transform duration-300 ease-in-out
             bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] rounded-t-[20px]
-            ${isListExpanded ? 'h-[65vh] translate-y-0' : 'h-[60px] translate-y-0'}
-          `}>
+            \${isListExpanded ? 'h-[65vh] translate-y-0' : 'h-[60px] translate-y-0'}
+          \`}>
           <div
             className="w-full h-10 flex flex-col items-center justify-center cursor-pointer relative"
             onClick={() => setIsListExpanded(!isListExpanded)}
@@ -195,3 +158,6 @@ export default function Home() {
     </>
   );
 }
+`;
+
+fs.writeFileSync('app/page.tsx', content.substring(0, returnStart) + newReturn);
