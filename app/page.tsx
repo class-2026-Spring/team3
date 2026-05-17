@@ -5,7 +5,7 @@ import KakaoMap from '../components/map/Kakao';
 import SearchBar from '../components/charger/SearchBar';
 import ChargerList from '../components/charger/ChargerList';
 import { useChargerData } from '../hooks/useChargerData';
-import { getStatColor, getStatLabel, getStationStats, getStationRepresentativeStat } from '../types/charger';
+import { getStatColor, getStationStats, getStationRepresentativeStat } from '../types/charger';
 
 export default function Home() {
   const {
@@ -13,9 +13,11 @@ export default function Home() {
     loading,
     statusLoading,
     error,
-    districts,
-    activeDistrict,
-    setActiveDistrict,
+    zoomState,
+    selectCity,
+    selectDistrict,
+    resetToCity,
+    resetToDistrict,
     chargeFilter,
     setChargeFilter,
     searchQuery,
@@ -23,26 +25,24 @@ export default function Home() {
     selectedCharger,
     setSelectedCharger,
     filteredChargers,
-    searchResults
+    searchResults,
+    districtSearchResults,
   } = useChargerData();
 
   const [isListExpanded, setIsListExpanded] = useState(false);
 
-  React.useEffect(() => {
-    if (chargers.length > 0 && typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const searchParam = params.get('search');
-      if (searchParam) {
-        const found = chargers.find(c => c.name === searchParam);
-        if (found) {
-          setSelectedCharger(found);
-          setActiveDistrict(found.district);
-        }
-      }
-    }
-  }, [chargers, setSelectedCharger, setActiveDistrict]);
+  // 검색에서 충전소 선택 → 해당 읍면동으로 드릴다운 후 마커 선택
+  const handleSelectCharger = (c: typeof chargers[0]) => {
+    selectDistrict(c.district);
+    setTimeout(() => setSelectedCharger(c), 50);
+  };
 
-    return (
+  // 검색에서 지역 선택
+  const handleSelectDistrict = (district: string) => {
+    selectDistrict(district);
+  };
+
+  return (
     <>
       {error && (
         <div className="bg-red-50 text-red-500 p-4 rounded-xl text-center shadow-sm">
@@ -57,7 +57,7 @@ export default function Home() {
         {loading && chargers.length === 0 && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
             <div className="w-10 h-10 border-4 border-teal-100 border-t-teal-400 rounded-full animate-spin"></div>
-            <p className="mt-4 text-[13px] font-bold text-gray-700">제주 지역 3,189개 충전소 위치를 불러오는 중...</p>
+            <p className="mt-4 text-[13px] font-bold text-gray-700">제주 지역 충전소 위치를 불러오는 중...</p>
             <p className="mt-1 text-[11px] text-gray-500">잠시만 기다려주세요</p>
           </div>
         )}
@@ -76,18 +76,46 @@ export default function Home() {
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               searchResults={searchResults}
-              onSelectCharger={(c) => {
-                setSelectedCharger(c);
-                setActiveDistrict(c.district);
-              }}
+              districtSearchResults={districtSearchResults}
+              onSelectCharger={handleSelectCharger}
+              onSelectDistrict={handleSelectDistrict}
             />
           </div>
+
+          {/* 줌 레벨 브레드크럼 (지도 위에 떠있는 뒤로가기) */}
+          {zoomState.level !== 'city' && (
+            <div className="absolute top-[60px] left-4 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md border border-gray-100">
+              <button onClick={resetToCity} className="text-[11px] font-bold text-gray-500 hover:text-teal-600 transition-colors">
+                전체
+              </button>
+              {zoomState.level === 'station' && (
+                <>
+                  <span className="text-gray-300 text-[11px]">/</span>
+                  <button onClick={resetToDistrict} className="text-[11px] font-bold text-gray-500 hover:text-teal-600 transition-colors">
+                    {zoomState.selectedCity}
+                  </button>
+                  <span className="text-gray-300 text-[11px]">/</span>
+                  <span className="text-[11px] font-bold text-teal-600">{zoomState.selectedDistrict}</span>
+                </>
+              )}
+              {zoomState.level === 'district' && (
+                <>
+                  <span className="text-gray-300 text-[11px]">/</span>
+                  <span className="text-[11px] font-bold text-teal-600">{zoomState.selectedCity}</span>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 relative">
             <KakaoMap
               chargers={filteredChargers}
-              activeDistrict={activeDistrict}
-              setActiveDistrict={setActiveDistrict}
+              allChargers={chargers}
+              zoomState={zoomState}
+              selectCity={selectCity}
+              selectDistrict={selectDistrict}
+              resetToCity={resetToCity}
+              resetToDistrict={resetToDistrict}
               selectedCharger={selectedCharger}
               setSelectedCharger={setSelectedCharger}
             />
@@ -97,7 +125,6 @@ export default function Home() {
           {selectedCharger && (() => {
             const stats = getStationStats(selectedCharger.chargers);
             const repStat = getStationRepresentativeStat(selectedCharger.chargers);
-
             return (
               <div className="absolute bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[340px] md:right-auto z-20">
                 <div className="bg-white rounded-[15px] shadow-xl border border-gray-100 overflow-hidden">
@@ -105,12 +132,14 @@ export default function Home() {
                     <div className="flex justify-between items-start mb-1">
                       <p className="text-[15px] font-bold text-gray-900 leading-tight">{selectedCharger.name}</p>
                       <button onClick={() => setSelectedCharger(null)} className="p-1.5 -mr-2 -mt-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mb-4">{selectedCharger.address}</p>
-
-                    <div className="bg-gray-50/80 rounded-xl p-3 mb-1 border border-gray-100/50">
+                    <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100/50">
                       <p className="text-[13px] font-bold text-gray-800 mb-2 flex items-center gap-1.5">
                         현재 충전 가능
                         <span className="w-2 h-2 rounded-full" style={{ background: getStatColor(repStat) }}></span>
@@ -140,21 +169,25 @@ export default function Home() {
         <div className="w-[320px] border-l border-gray-100 bg-white hidden md:flex flex-col shrink-0">
           <div className="px-5 py-4 border-b border-gray-50">
             <h3 className="font-extrabold text-gray-800 text-[13px]">충전소 목록</h3>
-            <p className="text-[11px] text-gray-500 mt-1">총 <span className="text-teal-500 font-bold">{filteredChargers.length}</span>개의 충전소가 있습니다.</p>
+            <p className="text-[11px] text-gray-500 mt-1">
+              총 <span className="text-teal-500 font-bold">{filteredChargers.length}</span>개의 충전소
+            </p>
           </div>
           <div className="flex-1 overflow-hidden relative">
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
-                districts={districts}
-                activeDistrict={activeDistrict}
-                setActiveDistrict={(d) => {
-                  setActiveDistrict(d);
-                  setSelectedCharger(null);
-                }}
+                allChargers={chargers}
+                zoomState={zoomState}
+                selectCity={selectCity}
+                selectDistrict={selectDistrict}
+                resetToCity={resetToCity}
+                resetToDistrict={resetToDistrict}
                 chargeFilter={chargeFilter}
                 setChargeFilter={setChargeFilter}
-                onSelectCharger={setSelectedCharger}
+                onSelectCharger={(c) => {
+                  setSelectedCharger(c);
+                }}
               />
             </div>
           </div>
@@ -171,18 +204,20 @@ export default function Home() {
             onClick={() => setIsListExpanded(!isListExpanded)}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mb-1"></div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{isListExpanded ? 'Close List' : 'View List'}</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+              {isListExpanded ? 'Close List' : 'View List'}
+            </span>
           </div>
           <div className="h-[calc(100%-2.5rem)] overflow-hidden relative border-t border-gray-50">
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
-                districts={districts}
-                activeDistrict={activeDistrict}
-                setActiveDistrict={(d) => {
-                  setActiveDistrict(d);
-                  setSelectedCharger(null);
-                }}
+                allChargers={chargers}
+                zoomState={zoomState}
+                selectCity={selectCity}
+                selectDistrict={selectDistrict}
+                resetToCity={resetToCity}
+                resetToDistrict={resetToDistrict}
                 chargeFilter={chargeFilter}
                 setChargeFilter={setChargeFilter}
                 onSelectCharger={setSelectedCharger}

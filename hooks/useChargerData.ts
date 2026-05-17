@@ -1,51 +1,83 @@
 import { useState, useEffect } from 'react';
 import { Charger, FilterType, isFastCharger } from '../types/charger';
 
+// 제주시/서귀포시 구분 (district 기준)
+const JEJU_CITY_DISTRICTS = [
+  '한림읍','애월읍','구좌읍','조천읍','한경면','추자면','우도면',
+  '일도1동','일도2동','이도1동','이도2동','삼도1동','삼도2동',
+  '용담1동','용담2동','건입동','화북동','삼양동','봉개동','아라동',
+  '오라동','연동','노형동','외도동','이호동','도두동'
+];
+const SEOGWIPO_CITY_DISTRICTS = [
+  '대정읍','남원읍','성산읍','안덕면','표선면',
+  '송산동','정방동','중앙동','천지동','효돈동','영천동','동홍동','서홍동',
+  '대륜동','대천동','중문동','예래동',
+  '색달동','강정동','호근동','서호동','법환동','상효동','하효동','신효동',
+  '영남동','보목동','토평동','월평동','회수동','신산동','수산동','위미동'
+];
+
+export function getCity(district: string): '제주시' | '서귀포시' | '기타' {
+  if (JEJU_CITY_DISTRICTS.includes(district)) return '제주시';
+  if (SEOGWIPO_CITY_DISTRICTS.includes(district)) return '서귀포시';
+  // fallback: district 이름 포함 여부로 추정
+  return '기타';
+}
+
+// 줌 레벨 타입
+export type ZoomLevel = 'city' | 'district' | 'station';
+
+export interface ZoomState {
+  level: ZoomLevel;
+  selectedCity: '전체' | '제주시' | '서귀포시';
+  selectedDistrict: string | null; // 읍면동
+}
+
 export function useChargerData() {
   const [chargers, setChargers] = useState<Charger[]>([]);
-  const [loading, setLoading] = useState<boolean>(true); // 기본 데이터 로딩
-  const [statusLoading, setStatusLoading] = useState<boolean>(false); // 실시간 상태 백그라운드 로딩
+  const [loading, setLoading] = useState<boolean>(true);
+  const [statusLoading, setStatusLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeDistrict, setActiveDistrict] = useState<string>('전체');
+  // 줌 상태 (3단계)
+  const [zoomState, setZoomState] = useState<ZoomState>({
+    level: 'city',
+    selectedCity: '전체',
+    selectedDistrict: null,
+  });
+
+  // 하위호환용 (ChargerList, 기존 코드에서 사용)
   const [chargeFilter, setChargeFilter] = useState<FilterType>('전체');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCharger, setSelectedCharger] = useState<Charger | null>(null);
-
   const [districts, setDistricts] = useState<string[]>([]);
 
   useEffect(() => {
-    // 1. 초기 렌더링 시 로컬 정적 JSON 파일에서 위치 정보를 즉시 로드 (0.1초 컷)
     const loadBaseData = async () => {
       try {
         setLoading(true);
         const res = await fetch('/jeju_stations.json');
         if (!res.ok) throw new Error('기본 데이터를 불러올 수 없습니다.');
         const baseData: Charger[] = await res.json();
-        
-        // 초기 상태는 모두 '9' (상태 미확인)로 설정
+
         const initializedData = baseData.map(station => ({
           ...station,
           chargers: station.chargers.map((port: any) => ({ ...port, stat: '9' }))
         }));
-        
+
         setChargers(initializedData);
 
         const unique = Array.from(new Set(initializedData.map(c => c.district)))
           .filter(d => d && d !== '기타')
           .sort();
         setDistricts(unique);
-        
-        // 2. 기본 로딩 성공 직후 실시간 상태를 백그라운드에서 로드
+
         fetchRealtimeStatus(initializedData);
-        
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     loadBaseData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -54,10 +86,8 @@ export function useChargerData() {
     try {
       setStatusLoading(true);
       const res = await fetch('/api/chargers/status');
-      if (!res.ok) return; // 에러가 나도 기존 지도는 유지되게 조용히 리턴
+      if (!res.ok) return;
       const { statusMap } = await res.json();
-      
-      // 기존 충전소 데이터에 실시간 상태만 덮어쓰기
       setChargers(currentData.map(station => ({
         ...station,
         chargers: station.chargers.map(port => ({
@@ -65,7 +95,6 @@ export function useChargerData() {
           stat: statusMap[`${station.id}_${port.chgerId}`] || port.stat
         }))
       })));
-      
     } catch (e) {
       console.error("실시간 상태 업데이트 실패:", e);
     } finally {
@@ -73,17 +102,26 @@ export function useChargerData() {
     }
   };
 
-  // 1분(60000ms)마다 백그라운드 실시간 갱신
   useEffect(() => {
     if (chargers.length === 0) return;
     const interval = setInterval(() => fetchRealtimeStatus(chargers), 60000);
     return () => clearInterval(interval);
   }, [chargers]);
 
-
-  // 현재 필터와 지역에 맞는 충전소 리스트
+  // 줌 레벨에 따른 필터링된 충전소
   const filteredChargers = chargers
-    .filter(c => activeDistrict === '전체' || c.district === activeDistrict)
+    .filter(c => {
+      const { level, selectedCity, selectedDistrict } = zoomState;
+      if (level === 'city') return true; // 전체 (클러스터로 표시)
+      if (level === 'district') {
+        if (selectedCity === '전체') return true;
+        return getCity(c.district) === selectedCity;
+      }
+      if (level === 'station') {
+        return c.district === selectedDistrict;
+      }
+      return true;
+    })
     .filter(c => {
       if (chargeFilter === '전체') return true;
       if (chargeFilter === '급속') return c.chargers?.some(port => isFastCharger(port.type));
@@ -91,18 +129,66 @@ export function useChargerData() {
       return true;
     });
 
+  // 검색: 충전소명/주소/지역명 모두 지원
   const searchResults = searchQuery.length > 0
     ? chargers.filter(c =>
-        c.name.includes(searchQuery) || c.address.includes(searchQuery)
+        c.name.includes(searchQuery) ||
+        c.address.includes(searchQuery) ||
+        c.district.includes(searchQuery)
       ).slice(0, 15)
     : [];
+
+  // 지역 검색 결과 (읍면동 단위)
+  const districtSearchResults = searchQuery.length > 0
+    ? districts.filter(d => d.includes(searchQuery)).slice(0, 5)
+    : [];
+
+  // 줌 상태 변경 헬퍼
+  const selectCity = (city: '전체' | '제주시' | '서귀포시') => {
+    setZoomState({ level: 'district', selectedCity: city, selectedDistrict: null });
+    setSelectedCharger(null);
+  };
+
+  const selectDistrict = (district: string) => {
+    const city = getCity(district) as '제주시' | '서귀포시';
+    setZoomState({ level: 'station', selectedCity: city, selectedDistrict: district });
+    setSelectedCharger(null);
+  };
+
+  const resetToCity = () => {
+    setZoomState({ level: 'city', selectedCity: '전체', selectedDistrict: null });
+    setSelectedCharger(null);
+  };
+
+  const resetToDistrict = () => {
+    setZoomState(prev => ({
+      level: 'district',
+      selectedCity: prev.selectedCity,
+      selectedDistrict: null,
+    }));
+    setSelectedCharger(null);
+  };
+
+  // 하위호환: activeDistrict
+  const activeDistrict = zoomState.selectedDistrict ?? '전체';
+  const setActiveDistrict = (d: string) => {
+    if (d === '전체') resetToCity();
+    else selectDistrict(d);
+  };
 
   return {
     chargers,
     loading,
-    statusLoading, // UI에서 "실시간 갱신중..." 표시에 사용 가능
+    statusLoading,
     error,
     districts,
+    // 새 줌 상태
+    zoomState,
+    selectCity,
+    selectDistrict,
+    resetToCity,
+    resetToDistrict,
+    // 기존 호환
     activeDistrict,
     setActiveDistrict,
     chargeFilter,
@@ -112,6 +198,7 @@ export function useChargerData() {
     selectedCharger,
     setSelectedCharger,
     filteredChargers,
-    searchResults
+    searchResults,
+    districtSearchResults,
   };
 }
