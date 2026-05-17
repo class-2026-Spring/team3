@@ -25,10 +25,18 @@ export default function ChargerList({
 }: ChargerListProps) {
   const { level, selectedCity, selectedDistrict } = zoomState;
 
+  // chargeFilter 적용한 allChargers
+  const filteredAll = allChargers.filter(c => {
+    if (chargeFilter === '전체') return true;
+    if (chargeFilter === '급속') return c.chargers.some(p => isFastCharger(p.type));
+    if (chargeFilter === '완속') return c.chargers.some(p => !isFastCharger(p.type));
+    return true;
+  });
+
   // ── LEVEL 1: 시 단위 ──────────────────────────────────────
   if (level === 'city') {
-    const jejuList = allChargers.filter(c => getCity(c.district) === '제주시');
-    const seoList  = allChargers.filter(c => getCity(c.district) === '서귀포시');
+    const jejuList = filteredAll.filter(c => getCity(c.district) === '제주시');
+    const seoList  = filteredAll.filter(c => getCity(c.district) === '서귀포시');
 
     return (
       <div className="flex flex-col bg-white h-full">
@@ -77,7 +85,7 @@ export default function ChargerList({
 
   // ── LEVEL 2: 읍면동 단위 ──────────────────────────────────
   if (level === 'district') {
-    const cityChargers = allChargers.filter(c =>
+    const cityChargers = filteredAll.filter(c =>
       selectedCity === '전체' || getCity(c.district) === selectedCity
     );
     const districtGroups: Record<string, Charger[]> = {};

@@ -133,6 +133,7 @@ export default function Home() {
             <KakaoMap
               chargers={filteredChargers}
               allChargers={chargers}
+              chargeFilter={chargeFilter}
               zoomState={zoomState}
               selectCity={selectCity}
               selectDistrict={selectDistrict}

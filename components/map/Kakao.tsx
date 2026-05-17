@@ -10,6 +10,7 @@ declare global {
 interface KakaoMapProps {
   chargers: Charger[];
   allChargers: Charger[];
+  chargeFilter: '전체' | '급속' | '완속';
   zoomState: ZoomState;
   selectCity: (city: '전체' | '제주시' | '서귀포시') => void;
   selectDistrict: (district: string) => void;
@@ -28,6 +29,7 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
 export default function KakaoMap({
   chargers,
   allChargers,
+  chargeFilter,
   zoomState,
   selectCity,
   selectDistrict,
@@ -181,10 +183,19 @@ export default function KakaoMap({
 
     const { level, selectedCity, selectedDistrict } = zoomState;
 
+    // chargeFilter 적용 (급속: type 01~05, 완속: 나머지)
+    const isFast = (type: string) => ['01','02','03','04','05'].includes(type);
+    const filteredAll = allChargers.filter(c => {
+      if (chargeFilter === '전체') return true;
+      if (chargeFilter === '급속') return c.chargers.some((p: any) => isFast(p.type));
+      if (chargeFilter === '완속') return c.chargers.some((p: any) => !isFast(p.type));
+      return true;
+    });
+
     // ── LEVEL 1: city ─────────────────────────────────────────
     if (level === 'city') {
       const cityGroups: Record<string, number> = { '제주시': 0, '서귀포시': 0 };
-      allChargers.forEach(c => {
+      filteredAll.forEach(c => {
         const city = getCity(c.district);
         if (city === '제주시' || city === '서귀포시') cityGroups[city]++;
       });
@@ -224,7 +235,7 @@ export default function KakaoMap({
 
     // ── LEVEL 2: district ─────────────────────────────────────
     if (level === 'district') {
-      const cityChargers = allChargers.filter(c =>
+      const cityChargers = filteredAll.filter(c =>
         selectedCity === '전체' || getCity(c.district) === selectedCity
       );
       const districtGroups: Record<string, Charger[]> = {};
@@ -336,7 +347,7 @@ export default function KakaoMap({
         setTimeout(() => { isProgrammaticMove.current = false; }, 600);
       }
     }
-  }, [mapReady, zoomState, chargers, allChargers, selectedCharger,
+  }, [mapReady, zoomState, chargers, allChargers, chargeFilter, selectedCharger,
       clearOverlays, clearMarkers, hideAllPolygons,
       selectCity, selectDistrict, setSelectedCharger]);
 
