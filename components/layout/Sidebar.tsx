@@ -47,7 +47,7 @@ export default function Sidebar() {
           <div className={getIconClass("/ai")}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 19H5v-2h4v2zm0-4H5v-2h4v2zm0-4H5V9h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2zm4 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2z" /></svg>
           </div>
-          <span className={pathname === "/ai" ? "text-[13px]" : "text-[13px] font-bold"}>Ai</span>
+          <span className="text-[13px]">Ai</span>
         </Link>
 
         <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2">
@@ -75,13 +75,16 @@ export default function Sidebar() {
           <span className="text-[13px] font-bold text-gray-800">Profile</span>
         </div>
 
-        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2">
-          <div className="w-8 h-8 rounded-[10px] bg-white shadow-sm flex items-center justify-center border border-gray-100 group-hover:border-gray-200 transition-colors shrink-0">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+        {/* Favorite - 링크 연결 */}
+        <Link href="/favorite" className={getTabClass("/favorite")}>
+          <div className={getIconClass("/favorite")}>
+            <svg width="15" height="15" viewBox="0 0 24 24"
+              fill={pathname === "/favorite" ? "white" : "currentColor"}>
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
           </div>
-          <span className="text-[13px] font-bold text-gray-800">Favorite</span>
-        </div>
-
+          <span className="text-[13px] font-bold">Favorite</span>
+        </Link>
       </div>
 
       <div className="p-4 mt-auto">
@@ -98,7 +101,6 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Sidebar Profile Section */}
         <div className="flex items-center justify-between px-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors py-2 -mx-2">
           <div className="flex items-center gap-3">
             <img src="/avatars/a.png" alt="Papakoo" className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100" />
