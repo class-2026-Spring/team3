@@ -68,12 +68,12 @@ export default function Sidebar() {
           <h6 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider">Account Pages</h6>
         </div>
 
-        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2">
-          <div className="w-8 h-8 rounded-[10px] bg-white shadow-sm flex items-center justify-center border border-gray-100 group-hover:border-gray-200 transition-colors shrink-0">
+        <Link href="/profile" className={getTabClass("/profile")}>
+          <div className={getIconClass("/profile")}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
           </div>
-          <span className="text-[13px] font-bold text-gray-800">Profile</span>
-        </div>
+          <span className="text-[13px] font-bold">Profile</span>
+        </Link>
 
         {/* Favorite - 링크 연결 */}
         <Link href="/favorite" className={getTabClass("/favorite")}>
