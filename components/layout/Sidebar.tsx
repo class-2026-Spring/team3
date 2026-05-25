@@ -9,9 +9,9 @@ export default function Sidebar() {
   const getTabClass = (path: string) => {
     const isActive = pathname === path;
     if (isActive) {
-      return "px-4 py-3 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] rounded-xl flex items-center gap-3 text-gray-800 font-bold mb-2 cursor-pointer transition-transform hover:scale-[1.02]";
+      return "px-4 py-3 bg-white dark:bg-gray-800 shadow-[0_2px_10px_rgba(0,0,0,0.04)] rounded-xl flex items-center gap-3 text-gray-800 dark:text-white font-bold mb-2 cursor-pointer transition-transform hover:scale-[1.02]";
     }
-    return "px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2";
+    return "px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors cursor-pointer group mb-2";
   };
 
   const getIconClass = (path: string) => {
@@ -19,20 +19,20 @@ export default function Sidebar() {
     if (isActive) {
       return "w-8 h-8 rounded-[10px] bg-teal-400 text-white flex items-center justify-center shadow-md shadow-teal-400/30 shrink-0";
     }
-    return "w-8 h-8 rounded-[10px] bg-white shadow-sm flex items-center justify-center border border-gray-100 group-hover:border-gray-200 transition-colors shrink-0";
+    return "w-8 h-8 rounded-[10px] bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center border border-gray-100 dark:border-gray-600 group-hover:border-gray-200 dark:group-hover:border-gray-500 transition-colors shrink-0";
   };
 
   return (
-    <aside className="w-[260px] bg-white hidden lg:flex flex-col m-4 rounded-[20px] shadow-sm border border-gray-100/50 overflow-y-auto scrollbar-hide z-50">
+    <aside className="w-[260px] bg-white dark:bg-[#13151f] hidden lg:flex flex-col m-4 rounded-[20px] shadow-sm border border-gray-100/50 dark:border-gray-800 overflow-y-auto scrollbar-hide z-50">
       <div className="p-6 pb-4 text-center flex items-center justify-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-teal-400 flex items-center justify-center text-white shrink-0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
         </div>
-        <span className="font-extrabold text-gray-800 text-[13px] tracking-widest uppercase">JEJU EV MAP</span>
+        <span className="font-extrabold text-gray-800 dark:text-white text-[13px] tracking-widest uppercase">JEJU EV MAP</span>
       </div>
 
       <div className="px-6 mb-4">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent"></div>
       </div>
 
       <div className="p-4 space-y-1 flex-1">
@@ -50,22 +50,22 @@ export default function Sidebar() {
           <span className="text-[13px]">Ai</span>
         </Link>
 
-        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2">
-          <div className="w-8 h-8 rounded-[10px] bg-white shadow-sm flex items-center justify-center border border-gray-100 group-hover:border-gray-200 transition-colors shrink-0">
+        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors cursor-pointer group mb-2">
+          <div className="w-8 h-8 rounded-[10px] bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center border border-gray-100 dark:border-gray-600 group-hover:border-gray-200 transition-colors shrink-0">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H3V6h18v12zm-9-8h-1v-1h2v-1h-2V7h-1v1H8v3h4v1h-2v1h2v2h1v-1h2v-3h-4z" /></svg>
           </div>
           <span className="text-[13px] font-bold">etc</span>
         </div>
 
-        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2">
-          <div className="w-8 h-8 rounded-[10px] bg-white shadow-sm flex items-center justify-center border border-gray-100 group-hover:border-gray-200 transition-colors shrink-0">
+        <div className="px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors cursor-pointer group mb-2">
+          <div className="w-8 h-8 rounded-[10px] bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center border border-gray-100 dark:border-gray-600 group-hover:border-gray-200 transition-colors shrink-0">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
           </div>
           <span className="text-[13px] font-bold">etc</span>
         </div>
 
         <div className="pt-5 pb-2 px-4">
-          <h6 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider">Account Pages</h6>
+          <h6 className="text-[11px] font-extrabold text-gray-800 dark:text-gray-400 uppercase tracking-wider">Account Pages</h6>
         </div>
 
         <Link href="/profile" className={getTabClass("/profile")}>
@@ -75,7 +75,6 @@ export default function Sidebar() {
           <span className="text-[13px] font-bold">Profile</span>
         </Link>
 
-        {/* Favorite - 링크 연결 */}
         <Link href="/favorite" className={getTabClass("/favorite")}>
           <div className={getIconClass("/favorite")}>
             <svg width="15" height="15" viewBox="0 0 24 24"
@@ -101,15 +100,15 @@ export default function Sidebar() {
           </button>
         </div>
 
-        <div className="flex items-center justify-between px-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors py-2 -mx-2">
+        <div className="flex items-center justify-between px-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors py-2 -mx-2">
           <div className="flex items-center gap-3">
-            <img src="/avatars/a.png" alt="Papakoo" className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100" />
+            <img src="/avatars/a.png" alt="Papakoo" className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100 dark:border-gray-700" />
             <div>
-              <h4 className="text-[13px] font-bold text-gray-800">Papakoo</h4>
-              <p className="text-[11px] font-medium text-gray-500">Project Manager</p>
+              <h4 className="text-[13px] font-bold text-gray-800 dark:text-white">Papakoo</h4>
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Project Manager</p>
             </div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-gray-600"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       </div>
     </aside>
