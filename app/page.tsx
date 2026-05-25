@@ -18,6 +18,7 @@ export default function Home() {
     chargers, loading, statusLoading, error,
     zoomState, selectCity, selectDistrict, resetToCity, resetToDistrict,
     chargeFilter, setChargeFilter,
+    statusFilter, setStatusFilter,
     searchQuery, setSearchQuery,
     selectedCharger, setSelectedCharger,
     filteredChargers, searchResults, districtSearchResults,
@@ -109,24 +110,18 @@ export default function Home() {
             />
           </div>
 
-          {zoomState.level !== 'city' && (
-            <div className="absolute top-[60px] left-4 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md border border-gray-100">
-              <button onClick={resetToCity} className="text-[11px] font-bold text-gray-500 hover:text-teal-600 transition-colors">전체</button>
-              {zoomState.level === 'station' && (
-                <>
-                  <span className="text-gray-300 text-[11px]">/</span>
-                  <button onClick={resetToDistrict} className="text-[11px] font-bold text-gray-500 hover:text-teal-600 transition-colors">{zoomState.selectedCity}</button>
-                  <span className="text-gray-300 text-[11px]">/</span>
-                  <span className="text-[11px] font-bold text-teal-600">{zoomState.selectedDistrict}</span>
-                </>
-              )}
-              {zoomState.level === 'district' && (
-                <>
-                  <span className="text-gray-300 text-[11px]">/</span>
-                  <span className="text-[11px] font-bold text-teal-600">{zoomState.selectedCity}</span>
-                </>
-              )}
-            </div>
+          {zoomState.level === 'district' && (
+            <button onClick={resetToCity} className="absolute top-[60px] left-4 z-20 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all font-bold text-[13px] hover:pr-5 group">
+              <svg className="text-gray-400 group-hover:-translate-x-0.5 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              제주도 전체보기
+            </button>
+          )}
+          
+          {zoomState.level === 'station' && (
+            <button onClick={resetToDistrict} className="absolute top-[60px] left-4 z-20 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200 text-gray-800 hover:bg-gray-50 transition-all font-extrabold text-[13px] hover:pr-5 group">
+              <svg className="text-gray-500 group-hover:-translate-x-0.5 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              {zoomState.selectedCity} 보기 (뒤로 가기)
+            </button>
           )}
 
           <div className="flex-1 relative">
@@ -195,6 +190,7 @@ export default function Home() {
           })()}
         </div>
 
+        {/* 데스크탑 충전소 목록 */}
         <div className="w-[320px] border-l border-gray-100 bg-white hidden md:flex flex-col shrink-0">
           <div className="px-5 py-4 border-b border-gray-50">
             <h3 className="font-extrabold text-gray-800 text-[13px]">충전소 목록</h3>
@@ -204,7 +200,6 @@ export default function Home() {
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
-                allChargers={chargers}
                 zoomState={zoomState}
                 selectCity={selectCity}
                 selectDistrict={selectDistrict}
@@ -212,6 +207,8 @@ export default function Home() {
                 resetToDistrict={resetToDistrict}
                 chargeFilter={chargeFilter}
                 setChargeFilter={setChargeFilter}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
                 onSelectCharger={setSelectedCharger}
                 isFavorite={isFavorite}
                 onToggleFavorite={handleToggleFavorite}
@@ -220,6 +217,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* 모바일 충전소 목록 시트 */}
         <div className={`md:hidden absolute bottom-0 left-0 right-0 z-30 transition-all duration-300 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] rounded-t-[20px] ${isListExpanded ? 'h-[65vh]' : 'h-[60px]'}`}>
           <div className="w-full h-10 flex flex-col items-center justify-center cursor-pointer" onClick={() => setIsListExpanded(!isListExpanded)}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mb-1"></div>
@@ -229,7 +227,6 @@ export default function Home() {
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
-                allChargers={chargers}
                 zoomState={zoomState}
                 selectCity={selectCity}
                 selectDistrict={selectDistrict}
@@ -237,6 +234,8 @@ export default function Home() {
                 resetToDistrict={resetToDistrict}
                 chargeFilter={chargeFilter}
                 setChargeFilter={setChargeFilter}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
                 onSelectCharger={setSelectedCharger}
                 isFavorite={isFavorite}
                 onToggleFavorite={handleToggleFavorite}

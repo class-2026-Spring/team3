@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Charger, getStatColor, getStationRepresentativeStat } from '../../types/charger';
+import { Charger, getStatColor, getStationRepresentativeStat, isFastCharger } from '../../types/charger';
 import { ZoomState, getCity } from '../../hooks/useChargerData';
 
 declare global {
@@ -21,9 +21,9 @@ interface KakaoMapProps {
 }
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  '제주시':   { lat: 33.51, lng: 126.52 },
+  '제주시': { lat: 33.51, lng: 126.52 },
   '서귀포시': { lat: 33.25, lng: 126.56 },
-  '전체':     { lat: 33.37, lng: 126.55 },
+  '전체': { lat: 33.37, lng: 126.55 },
 };
 
 export default function KakaoMap({
@@ -43,7 +43,9 @@ export default function KakaoMap({
   const polygonsRef = useRef<{ polygon: any; name: string }[]>([]);
   const customOverlaysRef = useRef<any[]>([]);
   const markerListRef = useRef<any[]>([]);
+  const clustererRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [showSearchHere, setShowSearchHere] = useState(false);
 
   // zoomState/allChargers를 ref로 유지 → zoom_changed 핸들러가 stale closure 없이 최신값 읽음
   const zoomStateRef = useRef(zoomState);
@@ -51,7 +53,10 @@ export default function KakaoMap({
   const isProgrammaticMove = useRef(false);
 
   // ref를 항상 최신으로 동기화
-  useEffect(() => { zoomStateRef.current = zoomState; }, [zoomState]);
+  useEffect(() => { 
+    zoomStateRef.current = zoomState; 
+    setShowSearchHere(false);
+  }, [zoomState]);
   useEffect(() => { allChargersRef.current = allChargers; }, [allChargers]);
 
   const clearOverlays = useCallback(() => {
@@ -60,6 +65,9 @@ export default function KakaoMap({
   }, []);
 
   const clearMarkers = useCallback(() => {
+    if (clustererRef.current) {
+      clustererRef.current.clear();
+    }
     markerListRef.current.forEach(m => m.setMap(null));
     markerListRef.current = [];
   }, []);
@@ -86,6 +94,39 @@ export default function KakaoMap({
         });
         mapInstance.current = map;
 
+        clustererRef.current = new window.kakao.maps.MarkerClusterer({
+          map: map,
+          averageCenter: true,
+          minLevel: 3, // 줌 레벨 1~2에서만 개별 핀이 보이고, 3이상에서는 자연스럽게 묶임
+          gridSize: 60, // 적당한 거리의 마커들을 확실하게 하나로 묶어줌
+          calculator: [10, 30],
+          styles: [
+            {
+              width: '40px', height: '40px',
+              background: 'rgba(20, 184, 166, 0.95)',
+              borderRadius: '20px',
+              color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '40px',
+              border: '2px solid rgba(255, 255, 255, 0.9)', boxShadow: '0 3px 10px rgba(0,0,0,0.15)'
+            },
+            {
+              width: '50px', height: '50px',
+              background: 'rgba(13, 148, 136, 0.95)',
+              borderRadius: '25px',
+              color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '50px',
+              border: '2px solid rgba(255, 255, 255, 0.9)', boxShadow: '0 3px 10px rgba(0,0,0,0.15)',
+              fontSize: '15px'
+            },
+            {
+              width: '60px', height: '60px',
+              background: 'rgba(15, 118, 110, 0.95)',
+              borderRadius: '30px',
+              color: '#fff', textAlign: 'center', fontWeight: 'bold', lineHeight: '60px',
+              border: '2px solid rgba(255, 255, 255, 0.9)', boxShadow: '0 3px 10px rgba(0,0,0,0.15)',
+              fontSize: '16px'
+            }
+          ]
+        });
+
         // zoom_changed: ref에서 최신 zoomState 읽어서 처리
         window.kakao.maps.event.addListener(map, 'zoom_changed', () => {
           if (isProgrammaticMove.current) return;
@@ -95,7 +136,7 @@ export default function KakaoMap({
 
           if (mapLevel >= 10) {
             resetToCity();
-          } else if (mapLevel >= 7) {
+          } else if (mapLevel >= 6) {
             if (cur.level === 'city') {
               const center = map.getCenter();
               const city = center.getLat() > 33.38 ? '제주시' : '서귀포시';
@@ -128,6 +169,13 @@ export default function KakaoMap({
               if (nearest) selectDistrict(nearest);
             }
             // station → station: 유지
+          }
+        });
+
+        // dragend: 마우스 드래그가 끝났을 때 (옵션 2)
+        window.kakao.maps.event.addListener(map, 'dragend', () => {
+          if (zoomStateRef.current.level === 'station') {
+            setShowSearchHere(true);
           }
         });
 
@@ -183,12 +231,10 @@ export default function KakaoMap({
 
     const { level, selectedCity, selectedDistrict } = zoomState;
 
-    // chargeFilter 적용 (급속: type 01~05, 완속: 나머지)
-    const isFast = (type: string) => ['01','02','03','04','05'].includes(type);
     const filteredAll = allChargers.filter(c => {
       if (chargeFilter === '전체') return true;
-      if (chargeFilter === '급속') return c.chargers.some((p: any) => isFast(p.type));
-      if (chargeFilter === '완속') return c.chargers.some((p: any) => !isFast(p.type));
+      if (chargeFilter === '급속') return c.chargers.some((p: any) => isFastCharger(p.type));
+      if (chargeFilter === '완속') return c.chargers.some((p: any) => !isFastCharger(p.type));
       return true;
     });
 
@@ -262,8 +308,8 @@ export default function KakaoMap({
             cursor:pointer;user-select:none;transition:transform 0.15s;"
             onmouseover="this.style.transform='scale(1.1)'"
             onmouseout="this.style.transform='scale(1)'">
-            <span style="color:#fff;font-size:${size>64?16:13}px;font-weight:900;line-height:1;">${count}</span>
-            <span style="color:rgba(255,255,255,0.92);font-size:${size>64?10:9}px;font-weight:700;margin-top:1px;text-align:center;padding:0 4px;white-space:nowrap;">${districtName}</span>
+            <span style="color:#fff;font-size:${size > 64 ? 16 : 13}px;font-weight:900;line-height:1;">${count}</span>
+            <span style="color:rgba(255,255,255,0.92);font-size:${size > 64 ? 10 : 9}px;font-weight:700;margin-top:1px;text-align:center;padding:0 4px;white-space:nowrap;">${districtName}</span>
           </div>`;
 
         const overlay = new window.kakao.maps.CustomOverlay({
@@ -276,10 +322,17 @@ export default function KakaoMap({
 
       const center = CITY_CENTERS[selectedCity] || CITY_CENTERS['전체'];
       const currentLevel = map.getLevel();
-      if (currentLevel < 7 || currentLevel >= 10) {
+      
+      if (currentLevel >= 10) {
+        // 전체 -> 제주시/서귀포시 진입 시 (크게 줌인)
         isProgrammaticMove.current = true;
         map.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
         map.setLevel(9);
+        setTimeout(() => { isProgrammaticMove.current = false; }, 600);
+      } else if (currentLevel < 6) {
+        // 동네(station)에서 뒤로 가기 눌렀을 때 (현재 화면 중심은 유지하면서 줌아웃만)
+        isProgrammaticMove.current = true;
+        map.setLevel(6);
         setTimeout(() => { isProgrammaticMove.current = false; }, 600);
       }
       return;
@@ -296,8 +349,9 @@ export default function KakaoMap({
         }
       });
 
-      // 클러스터러 없이 순수 마커만 (원형 오버레이와 겹치지 않음)
+      // 선택된 동네의 마커만 표시 (옵션 2 방식 복구)
       const districtChargers = chargers.filter(c => c.district === selectedDistrict);
+      const markersToAdd: any[] = [];
 
       districtChargers.forEach(charger => {
         const isSelected = selectedCharger?.id === charger.id;
@@ -321,7 +375,6 @@ export default function KakaoMap({
           { offset: new window.kakao.maps.Point(w / 2, h) }
         );
         const marker = new window.kakao.maps.Marker({
-          map,
           position: new window.kakao.maps.LatLng(charger.lat, charger.lng),
           image: markerImage,
           title: charger.name,
@@ -329,27 +382,83 @@ export default function KakaoMap({
         window.kakao.maps.event.addListener(marker, 'click', () => {
           setSelectedCharger(charger);
         });
+        markersToAdd.push(marker);
         markerListRef.current.push(marker);
       });
 
+      if (clustererRef.current) {
+        clustererRef.current.addMarkers(markersToAdd);
+      }
+
       const currentLevel = map.getLevel();
-      if (currentLevel >= 7) {
+      if (currentLevel >= 6) {
         isProgrammaticMove.current = true;
         if (selectedCharger) {
           map.setCenter(new window.kakao.maps.LatLng(selectedCharger.lat, selectedCharger.lng));
           map.setLevel(4);
         } else if (districtChargers.length > 0) {
-          const avgLat = districtChargers.reduce((s, c) => s + c.lat, 0) / districtChargers.length;
-          const avgLng = districtChargers.reduce((s, c) => s + c.lng, 0) / districtChargers.length;
-          map.setCenter(new window.kakao.maps.LatLng(avgLat, avgLng));
-          map.setLevel(6);
+          // 아웃라이어(외곽, 산간지방)로 인해 엉뚱한 곳이 중심으로 잡히는 것을 막기 위해 중앙값(Median) 사용
+          const lats = districtChargers.map(c => c.lat).sort((a, b) => a - b);
+          const lngs = districtChargers.map(c => c.lng).sort((a, b) => a - b);
+          const medianLat = lats[Math.floor(lats.length / 2)];
+          const medianLng = lngs[Math.floor(lngs.length / 2)];
+          
+          map.setCenter(new window.kakao.maps.LatLng(medianLat, medianLng));
+          // 너무 넓은 면적이 보이지 않도록 줌 레벨을 6 -> 5로 한 단계 더 확대
+          map.setLevel(5);
         }
         setTimeout(() => { isProgrammaticMove.current = false; }, 600);
       }
     }
   }, [mapReady, zoomState, chargers, allChargers, chargeFilter, selectedCharger,
-      clearOverlays, clearMarkers, hideAllPolygons,
-      selectCity, selectDistrict, setSelectedCharger]);
+    clearOverlays, clearMarkers, hideAllPolygons,
+    selectCity, selectDistrict, setSelectedCharger]);
 
-  return <div ref={mapRef} className="w-full h-full bg-gray-100" />;
+  const handleSearchHere = useCallback(() => {
+    if (!mapInstance.current) return;
+    const center = mapInstance.current.getCenter();
+    const lat = center.getLat();
+    const lng = center.getLng();
+    const allC = allChargersRef.current;
+
+    const dGroups: Record<string, Charger[]> = {};
+    allC.forEach(c => {
+      if (!dGroups[c.district]) dGroups[c.district] = [];
+      dGroups[c.district].push(c);
+    });
+    let nearest = '';
+    let minDist = Infinity;
+    Object.entries(dGroups).forEach(([name, list]) => {
+      const avgLat = list.reduce((s, c) => s + c.lat, 0) / list.length;
+      const avgLng = list.reduce((s, c) => s + c.lng, 0) / list.length;
+      const d = Math.hypot(avgLat - lat, avgLng - lng);
+      if (d < minDist) { minDist = d; nearest = name; }
+    });
+
+    if (nearest && nearest !== zoomStateRef.current.selectedDistrict) {
+      selectDistrict(nearest);
+    }
+    setShowSearchHere(false);
+  }, [selectDistrict]);
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapRef} className="w-full h-full bg-gray-100" />
+      
+      {/* 이 지역에서 다시 검색 버튼 */}
+      {showSearchHere && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100]">
+          <button 
+            onClick={handleSearchHere}
+            className="flex items-center gap-2 bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-teal-500 hover:bg-teal-50 hover:scale-105 transition-all text-teal-700 font-bold text-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M2.13 15.57a9 9 0 1 0 3.8-10.42l-4.14 2.85"/>
+            </svg>
+            현 지도에서 검색
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
