@@ -31,7 +31,7 @@ type Message = {
 
 export default function AiPage() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'ai', text: '안녕하세요!  제주도 전기차 충전 도우미입니다. 무엇을 도와드릴까요?' }
+    { id: '1', role: 'ai', text: '무엇을 도와드릴까요?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -190,7 +190,7 @@ export default function AiPage() {
                         <span className="text-[11px] font-bold text-teal-500 bg-teal-50 px-2 py-0.5 rounded-full">{s.distance}km</span>
                       </div>
                       <p className="text-[11px] text-gray-500 mb-2 truncate">{s.address}</p>
-                      <Link href={`/?search=${encodeURIComponent(s.name)}`} className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-teal-500 hover:bg-teal-600 px-3 py-1.5 rounded-lg transition-colors">
+                      <Link href={`/?station=${encodeURIComponent(s.id)}`} className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-teal-500 hover:bg-teal-600 px-3 py-1.5 rounded-lg transition-colors">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                         지도로 이동
                       </Link>
