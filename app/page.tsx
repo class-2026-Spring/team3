@@ -9,6 +9,7 @@ import { useChargerData } from '../hooks/useChargerData';
 import { useFavorites } from '../hooks/useFavorites';
 import { getStatColor, getStationStats, getStationRepresentativeStat } from '../types/charger';
 import { supabase } from '../lib/supabase';
+import StationCommunity from '../components/charger/StationCommunity';
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -183,6 +184,10 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                  {/* 커뮤니티 제보 영역 */}
+                  <div className="border-t border-gray-100 bg-white">
+                    <StationCommunity stationId={selectedCharger.id} />
                   </div>
                 </div>
               </div>
