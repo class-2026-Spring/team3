@@ -200,7 +200,7 @@ export default function Home() {
                   </div>
                   {/* 커뮤니티 제보 영역 */}
                   <div className="border-t border-gray-100 bg-white">
-                    <StationCommunity stationId={selectedCharger.id} />
+                    <StationCommunity stationId={selectedCharger.id} stationName={selectedCharger.name} />
                   </div>
                 </div>
               </div>
