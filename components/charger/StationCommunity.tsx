@@ -167,9 +167,24 @@ export default function StationCommunity({ stationId }: StationCommunityProps) {
           </svg>
           Talk
         </h3>
-        <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-          {comments.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {(() => {
+            const rated = comments.filter(c => c.rating);
+            if (rated.length === 0) return null;
+            const avg = rated.reduce((sum, c) => sum + (c.rating ?? 0), 0) / rated.length;
+            return (
+              <div className="flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span className="text-[11px] font-bold text-amber-500">{avg.toFixed(1)}</span>
+              </div>
+            );
+          })()}
+          <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
+            {comments.length}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50/30 max-h-[250px]">
