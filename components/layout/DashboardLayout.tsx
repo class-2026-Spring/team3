@@ -1,25 +1,32 @@
 "use client";
+// components/layout/DashboardLayout.tsx
 
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import AuthModal from "../auth/AuthModal";
+import SettingsPanel from "./SettingsPanel";
+import NotificationPanel from "./NotificationPanel";
+import { AppProvider, useAppContext } from "../../contexts/AppContext";
+import { useFavorites } from "../../hooks/useFavorites";
 import { supabase } from "../../lib/supabase";
-import type { User } from "@supabase/supabase-js";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function LayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  // 로그인 상태 감지
+  const { unreadCount } = useAppContext();
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session) setShowAuthModal(false); // 로그인 성공 시 모달 닫기
+      if (session) setShowAuthModal(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -61,9 +68,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="text-[15px] font-bold tracking-wide">{title}</h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
+            <div className="relative hidden md:block">
+              <input type="text" placeholder="Type here..." className="bg-white/90 backdrop-blur-sm text-gray-700 pl-10 pr-4 py-2 rounded-xl text-xs w-52 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-sm border border-transparent placeholder:text-gray-400 font-medium transition-all" />
+              <svg className="w-3.5 h-3.5 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
 
-            {/* 로그인/로그아웃 버튼 */}
             {user ? (
               <div className="flex items-center gap-3">
                 <span className="text-white/80 text-xs font-medium hidden md:block truncate max-w-[120px]">
@@ -93,6 +103,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             )}
 
+            {/* ⚙️ 설정 버튼 */}
+            <button
+              onClick={() => { setShowSettings(true); setShowNotifications(false); }}
+              className="text-white hover:opacity-80 transition-opacity"
+              title="설정"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94zM12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+              </svg>
+            </button>
+
+            {/* 🔔 알림 버튼 */}
+            <button
+              onClick={() => { setShowNotifications(true); setShowSettings(false); }}
+              className="text-white hover:opacity-80 transition-opacity relative"
+              title="알림"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-[3px] leading-none">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
           </div>
         </header>
 
@@ -106,8 +142,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       </main>
 
-      {/* 로그인 모달 */}
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
+      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
+      <NotificationPanel open={showNotifications} onClose={() => setShowNotifications(false)} />
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user?.id ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const { favorites, favoriteNames } = useFavorites(userId);
+
+  return (
+    <AppProvider favoriteIds={favorites} favoriteNames={favoriteNames} userId={userId}>
+      <LayoutInner>{children}</LayoutInner>
+    </AppProvider>
   );
 }

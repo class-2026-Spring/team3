@@ -164,8 +164,21 @@ export default function Home() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">{selectedCharger.address}</p>
-                    <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100/50">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs text-gray-500 flex-1">{selectedCharger.address}</p>
+                      <button
+                        onClick={() => {
+                          const dest = encodeURIComponent(selectedCharger.name);
+                          window.open(`https://map.kakao.com/link/search/${dest}`, '_blank');
+                        }}
+                        className="ml-2 flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-black text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        길찾기
+                      </button>
+                    </div>                    <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100/50">
                       <p className="text-[13px] font-bold text-gray-800 mb-2 flex items-center gap-1.5">
                         현재 충전 가능
                         <span className="w-2 h-2 rounded-full" style={{ background: getStatColor(repStat) }}></span>
