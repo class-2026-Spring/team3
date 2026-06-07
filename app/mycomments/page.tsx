@@ -34,25 +34,15 @@ export default function MyCommentsPage() {
 
       const { data: rows } = await supabase
         .from('station_comments')
-        .select('id, station_id, content, rating, created_at')
+        .select('id, station_id, station_name, content, rating, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (!rows) { setLoading(false); return; }
 
-      // station_name 가져오기
-      const stationIds = [...new Set(rows.map(r => r.station_id))];
-      const { data: stations } = await supabase
-        .from('chargers')
-        .select('id, name')
-        .in('id', stationIds);
-
-      const nameMap: Record<string, string> = {};
-      stations?.forEach(s => { nameMap[s.id] = s.name; });
-
       setComments(rows.map(r => ({
         ...r,
-        station_name: nameMap[r.station_id] ?? r.station_id,
+        station_name: r.station_name ?? r.station_id,
       })));
       setLoading(false);
     });

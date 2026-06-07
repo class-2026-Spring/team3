@@ -18,9 +18,10 @@ interface Comment {
 
 interface StationCommunityProps {
   stationId: string;
+  stationName: string;
 }
 
-export default function StationCommunity({ stationId }: StationCommunityProps) {
+export default function StationCommunity({ stationId, stationName }: StationCommunityProps) {
   const { session, profile } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -65,6 +66,7 @@ export default function StationCommunity({ stationId }: StationCommunityProps) {
           user_id: profile.id,
           content: newComment.trim(),
           rating: newRating > 0 ? newRating : null,
+          station_name: stationName,
         }
       ])
       .select();
