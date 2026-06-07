@@ -19,7 +19,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const [showSidebar, setShowSidebar] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  const { unreadCount } = useAppContext();
+  const { unreadCount, settings } = useAppContext();
 
   // 로그인 모달 자동 제어 (로그인 후 프로필이 없으면 띄우고, 다 있으면 닫기)
   useEffect(() => {
@@ -32,9 +32,30 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [session, profile, loading]);
 
+  // 테마 (다크모드) 제어 로직
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = (isSystemDark: boolean) => {
+      if (settings.theme === 'dark') {
+        root.classList.add('dark');
+      } else if (settings.theme === 'light') {
+        root.classList.remove('dark');
+      } else {
+        if (isSystemDark) root.classList.add('dark');
+        else root.classList.remove('dark');
+      }
+    };
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    applyTheme(mediaQuery.matches);
+
+    const listener = (e: MediaQueryListEvent) => applyTheme(e.matches);
+    mediaQuery.addEventListener('change', listener);
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, [settings.theme]);
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA] overflow-hidden font-sans">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans transition-colors duration-300">
       {/* 모바일 햄버거 버튼 */}
       <button
         onClick={() => setShowSidebar(true)}
