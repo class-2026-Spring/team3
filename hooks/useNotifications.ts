@@ -16,7 +16,28 @@ export function useNotifications(
   userId: string | null,
 ) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // localStorage에서 초기 알림 로드
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`jeju-ev-notifs-${userId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setNotifications(parsed);
+      }
+    } catch {}
+    setIsLoaded(true);
+  }, [userId]);
+
+  // 알림 상태 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (!isLoaded || !userId) return;
+    try {
+      localStorage.setItem(`jeju-ev-notifs-${userId}`, JSON.stringify(notifications));
+    } catch {}
+  }, [notifications, userId, isLoaded]);
 
   const addNotification = useCallback(
     (notif: Omit<AppNotification, 'id' | 'read' | 'createdAt'>) => {
@@ -136,6 +157,7 @@ export function useNotifications(
 
           // 2. 즐겨찾기 충전소 새 댓글 (기존 로직)
           if (settings.notifications.favoriteComments && favoriteIds.includes(newRow.station_id)) {
+            console.log('[알림 디버그] 즐겨찾기 충전소 댓글 감지:', newRow);
             addNotification({
               type: 'comment',
               stationId: newRow.station_id,
@@ -153,20 +175,27 @@ export function useNotifications(
           table: 'comment_likes',
         },
         async (payload) => {
+          console.log('[알림 디버그] 좋아요 Realtime 이벤트 수신:', payload);
           const newRow = payload.new as {
             comment_id: string;
             user_id: string;
           };
-          if (newRow.user_id === userId) return; // 내가 누른 좋아요 무시
+          if (newRow.user_id === userId) {
+             console.log('[알림 디버그] 내가 누른 좋아요이므로 무시합니다.');
+             return; // 내가 누른 좋아요 무시
+          }
 
           // 어떤 댓글에 좋아요가 눌렸는지 조회
-          const { data: comment } = await supabase
+          const { data: comment, error } = await supabase
             .from('station_comments')
             .select('user_id, station_id, station_name, content')
             .eq('id', newRow.comment_id)
             .single();
+            
+          console.log('[알림 디버그] 원본 댓글 조회 결과:', { comment, error, myUserId: userId });
 
           if (comment?.user_id === userId) {
+            console.log('[알림 디버그] 내 댓글에 달린 좋아요 확인 완료! 알림 발송');
             const stationName = comment.station_name || favoriteNames[comment.station_id] || comment.station_id;
             const snippet = comment.content.length > 20 ? comment.content.slice(0, 20) + '...' : comment.content;
             addNotification({
@@ -205,12 +234,19 @@ export function useNotifications(
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      console.log("[알림 디버그] 모두 읽음 클릭됨", prev.length);
+      return prev.map(n => ({ ...n, read: true }));
+    });
   }, []);
 
   const clearAll = useCallback(() => setNotifications([]), []);
 
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  return { notifications, unreadCount, markRead, markAllRead, clearAll, addNotification };
+  return { notifications, unreadCount, markRead, markAllRead, clearAll, removeNotification, addNotification };
 }

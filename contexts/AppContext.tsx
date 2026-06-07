@@ -17,6 +17,7 @@ interface AppContextValue {
   markRead: (id: string) => void;
   markAllRead: () => void;
   clearAll: () => void;
+  removeNotification: (id: string) => void;
   addNotification: (notif: Omit<AppNotification, 'id' | 'read' | 'createdAt'>) => void;
 }
 
@@ -35,7 +36,7 @@ export function AppProvider({ children, favoriteIds, favoriteNames, userId }: Ap
   // settings가 로드되기 전엔 DEFAULT_SETTINGS 사용해서 undefined 방지
   const safeSettings: AppSettings = isLoaded ? settings : DEFAULT_SETTINGS;
 
-  const { notifications, unreadCount, markRead, markAllRead, clearAll, addNotification } =
+  const { notifications, unreadCount, markRead, markAllRead, clearAll, removeNotification, addNotification } =
     useNotifications(favoriteIds, favoriteNames, safeSettings, userId);
 
   return (
@@ -50,6 +51,7 @@ export function AppProvider({ children, favoriteIds, favoriteNames, userId }: Ap
         markRead,
         markAllRead,
         clearAll,
+        removeNotification,
         addNotification,
       }}
     >
