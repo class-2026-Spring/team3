@@ -1,6 +1,6 @@
 // types/notification.ts
 
-export type NotificationType = 'available' | 'unavailable' | 'status_change';
+export type NotificationType = 'available' | 'unavailable' | 'status_change' | 'comment' | 'like';
 
 export interface AppNotification {
   id: string;

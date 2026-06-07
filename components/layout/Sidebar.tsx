@@ -26,9 +26,9 @@ export default function Sidebar({ user, unreadCount, onSignIn, onSignOut, onSett
   const getTabClass = (path: string) => {
     const isActive = pathname === path;
     if (isActive) {
-      return "px-4 py-3 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] rounded-xl flex items-center gap-3 text-gray-800 font-bold mb-2 cursor-pointer transition-transform hover:scale-[1.02]";
+      return "px-4 py-3 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] rounded-xl flex items-center gap-3 text-gray-800 font-bold cursor-pointer transition-transform hover:scale-[1.02]";
     }
-    return "px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group mb-2";
+    return "px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer group";
   };
 
   const getIconClass = (path: string) => {
@@ -91,6 +91,9 @@ export default function Sidebar({ user, unreadCount, onSignIn, onSignOut, onSett
 }
 
 function SidebarContent({ pathname, session, profile, user, unreadCount, onSignIn, onSignOut, onSettings, onNotifications, showEditModal, setShowEditModal, getTabClass, getIconClass, onCloseMobile, showClose }: any) {
+  const [isMainOpen, setIsMainOpen] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(true);
+
   return (
     <>
       {/* 닫기 버튼 (모바일) */}
@@ -118,40 +121,56 @@ function SidebarContent({ pathname, session, profile, user, unreadCount, onSignI
       </div>
 
       {/* 메뉴 */}
-      <div className="p-4 space-y-1 flex-1">
-        <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider px-4 pb-2">Main</p>
-
-        <Link href="/" onClick={onCloseMobile} className={getTabClass("/")}>
-          <div className={getIconClass("/")}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
-          </div>
-          <span className="text-[13px]">Home</span>
-        </Link>
-
-        <Link href="/ai" onClick={onCloseMobile} className={getTabClass("/ai")}>
-          <div className={getIconClass("/ai")}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 19H5v-2h4v2zm0-4H5v-2h4v2zm0-4H5V9h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2zm4 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2z" /></svg>
-          </div>
-          <span className="text-[13px]">AI</span>
-        </Link>
-
-        <div className="pt-4 pb-2 px-4">
-          <h6 className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">PROFILE</h6>
+      <div className="p-4 flex-1 overflow-y-auto scrollbar-hide">
+        {/* Main Section */}
+        <div 
+          className="flex items-center justify-between px-4 pb-2 pt-2 cursor-pointer group"
+          onClick={() => setIsMainOpen(!isMainOpen)}
+        >
+          <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 transition-colors">Main</p>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-300 transition-transform duration-200 ${isMainOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
 
-        <Link href="/favorite" onClick={onCloseMobile} className={getTabClass("/favorite")}>
-          <div className={getIconClass("/favorite")}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-          </div>
-          <span className="text-[13px]">즐겨찾기</span>
-        </Link>
+        <div className={`space-y-1 mb-2 overflow-hidden transition-all duration-300 ${isMainOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <Link href="/" onClick={onCloseMobile} className={getTabClass("/")}>
+            <div className={getIconClass("/")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
+            </div>
+            <span className="text-[13px]">Home</span>
+          </Link>
 
-        <Link href="/mycomments" onClick={onCloseMobile} className={getTabClass("/mycomments")}>
-          <div className={getIconClass("/mycomments")}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
-          </div>
-          <span className="text-[13px]">내 댓글</span>
-        </Link>
+          <Link href="/ai" onClick={onCloseMobile} className={getTabClass("/ai")}>
+            <div className={getIconClass("/ai")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 19H5v-2h4v2zm0-4H5v-2h4v2zm0-4H5V9h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2zm4 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2z" /></svg>
+            </div>
+            <span className="text-[13px]">AI</span>
+          </Link>
+        </div>
+
+        {/* Profile Section */}
+        <div 
+          className="flex items-center justify-between px-4 pb-2 pt-4 cursor-pointer group"
+          onClick={() => setIsProfileOpen(!isProfileOpen)}
+        >
+          <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 transition-colors">PROFILE</p>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-300 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+
+        <div className={`space-y-1 overflow-hidden transition-all duration-300 ${isProfileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <Link href="/favorite" onClick={onCloseMobile} className={getTabClass("/favorite")}>
+            <div className={getIconClass("/favorite")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            </div>
+            <span className="text-[13px]">즐겨찾기</span>
+          </Link>
+
+          <Link href="/mycomments" onClick={onCloseMobile} className={getTabClass("/mycomments")}>
+            <div className={getIconClass("/mycomments")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+            </div>
+            <span className="text-[13px]">내 댓글</span>
+          </Link>
+        </div>
       </div>
 
       {/* 설정/알림/로그인 */}
@@ -169,7 +188,7 @@ function SidebarContent({ pathname, session, profile, user, unreadCount, onSignI
             )}
           </button>
         </div>
-        {user ? (
+        {session ? (
           <button onClick={onSignOut} className="flex items-center gap-1.5 text-gray-400 hover:text-red-400 font-bold text-xs transition-colors">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             로그아웃

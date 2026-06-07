@@ -31,7 +31,9 @@ export interface ZoomState {
   selectedDistrict: string | null;
 }
 
-export function useChargerData() {
+export function useChargerData(
+  onStatusChange?: (stationId: string, stationName: string, oldRepStat: string, newRepStat: string) => void
+) {
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [statusLoading, setStatusLoading] = useState<boolean>(false);
@@ -52,6 +54,9 @@ export function useChargerData() {
   // 폴링용 ref: interval이 항상 최신 chargers를 참조하도록 (매 업데이트마다 interval 재등록 방지)
   const chargersRef = useRef<Charger[]>([]);
   useEffect(() => { chargersRef.current = chargers; }, [chargers]);
+
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
 
   useEffect(() => {
     const loadBaseData = async () => {
@@ -84,13 +89,23 @@ export function useChargerData() {
       const res = await fetch('/api/chargers/status');
       if (!res.ok) return;
       const { statusMap } = await res.json();
-      setChargers(currentData.map(station => ({
-        ...station,
-        chargers: station.chargers.map(port => ({
+      const nextData = currentData.map(station => {
+        const oldRepStat = String(getStationRepresentativeStat(station.chargers));
+        const nextChargers = station.chargers.map(port => ({
           ...port,
           stat: statusMap[`${station.id}_${port.chgerId}`] || port.stat
-        }))
-      })));
+        }));
+        const newRepStat = String(getStationRepresentativeStat(nextChargers));
+
+        if (oldRepStat !== newRepStat && oldRepStat !== '9') {
+          if (onStatusChangeRef.current) {
+            onStatusChangeRef.current(station.id, station.name, oldRepStat, newRepStat);
+          }
+        }
+
+        return { ...station, chargers: nextChargers };
+      });
+      setChargers(nextData);
     } catch (e) {
       console.error("실시간 상태 업데이트 실패:", e);
     } finally {

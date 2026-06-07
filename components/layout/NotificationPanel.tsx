@@ -26,6 +26,9 @@ function NotificationItem({
   onRead: (id: string) => void;
 }) {
   const isAvailable = notif.type === 'available';
+  const isUnavailable = notif.type === 'unavailable';
+  const isComment = notif.type === 'comment';
+  const isLike = notif.type === 'like';
 
   return (
     <div
@@ -38,12 +41,24 @@ function NotificationItem({
         {/* 아이콘 */}
         <div
           className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-            isAvailable ? 'bg-teal-100' : 'bg-amber-100'
+            isAvailable ? 'bg-teal-100' : isUnavailable ? 'bg-red-100' : isComment ? 'bg-blue-100' : isLike ? 'bg-pink-100' : 'bg-amber-100'
           }`}
         >
           {isAvailable ? (
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          ) : isUnavailable ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+          ) : isComment ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          ) : isLike ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           ) : (
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round">
@@ -156,7 +171,7 @@ export default function NotificationPanel({ open, onClose }: Props) {
               </div>
               <p className="text-[12px] font-bold text-gray-400">알림이 없습니다</p>
               <p className="text-[11px] text-gray-300 mt-1">
-                즐겨찾기한 충전소 상태가<br />변경되면 여기에 표시됩니다
+                즐겨찾기한 충전소 상태 변경이나<br />새로운 후기 등록 시 여기에 표시됩니다
               </p>
             </div>
           ) : (

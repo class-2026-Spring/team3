@@ -3,17 +3,21 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
 
-interface Comment {
+export interface Comment {
   id: string;
   station_id: string;
   user_id: string;
   content: string;
   rating: number | null;
   created_at: string;
+  parent_id: string | null;
   profiles: {
     nickname: string;
     avatar_url: string;
   };
+  likesCount: number;
+  isLiked: boolean;
+  replies: Comment[];
 }
 
 interface StationCommunityProps {
@@ -31,31 +35,53 @@ export default function StationCommunity({ stationId, stationName }: StationComm
   const [editContent, setEditContent] = useState('');
   const [newRating, setNewRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
+  
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   useEffect(() => {
     fetchComments();
-  }, [stationId]);
+  }, [stationId, session?.user?.id]); // Re-fetch if session changes so isLiked is updated
 
   const fetchComments = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('station_comments')
       .select(`
-        id, station_id, user_id, content, rating, created_at,
-        profiles ( nickname, avatar_url )
+        id, station_id, user_id, content, rating, created_at, parent_id,
+        profiles ( nickname, avatar_url ),
+        comment_likes ( id, user_id )
       `)
       .eq('station_id', stationId)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setComments(data as any);
+      const mappedData: Comment[] = data.map((item: any) => ({
+        ...item,
+        likesCount: item.comment_likes ? item.comment_likes.length : 0,
+        isLiked: item.comment_likes ? item.comment_likes.some((like: any) => like.user_id === session?.user?.id) : false,
+        replies: []
+      }));
+
+      const mainComments = mappedData.filter(c => !c.parent_id);
+      const repliesData = mappedData.filter(c => c.parent_id);
+
+      // 답글은 시간순(오름차순) 정렬
+      repliesData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      mainComments.forEach(mc => {
+        mc.replies = repliesData.filter(r => r.parent_id === mc.id);
+      });
+
+      setComments(mainComments);
     }
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, parentId: string | null = null) => {
     e.preventDefault();
-    if (!newComment.trim() || !profile) return;
+    const contentToSubmit = parentId ? replyContent : newComment;
+    if (!contentToSubmit.trim() || !profile) return;
 
     setSubmitting(true);
     const { data, error } = await supabase
@@ -64,9 +90,10 @@ export default function StationCommunity({ stationId, stationName }: StationComm
         {
           station_id: stationId,
           user_id: profile.id,
-          content: newComment.trim(),
-          rating: newRating > 0 ? newRating : null,
+          content: contentToSubmit.trim(),
+          rating: parentId ? null : (newRating > 0 ? newRating : null),
           station_name: stationName,
+          parent_id: parentId
         }
       ])
       .select();
@@ -75,16 +102,14 @@ export default function StationCommunity({ stationId, stationName }: StationComm
       console.error('Failed to post comment:', error.message || JSON.stringify(error));
       alert('댓글 등록에 실패했습니다: ' + (error.message || '권한 또는 서버 오류'));
     } else if (data && data.length > 0) {
-      const newCommentObj = {
-        ...data[0],
-        profiles: {
-          nickname: profile.nickname,
-          avatar_url: profile.avatar_url
-        }
-      };
-      setComments([newCommentObj as any, ...comments]);
-      setNewComment('');
-      setNewRating(0);
+      await fetchComments();
+      if (!parentId) {
+        setNewComment('');
+        setNewRating(0);
+      } else {
+        setReplyingToId(null);
+        setReplyContent('');
+      }
     } else {
       console.error('Insert returned empty data. Check RLS policies.');
       alert('댓글 등록에 실패했습니다. (보안 정책 문제)');
@@ -99,10 +124,10 @@ export default function StationCommunity({ stationId, stationName }: StationComm
       .from('station_comments')
       .delete()
       .eq('id', commentId)
-      .eq('user_id', profile?.id); // RLS will also protect this
+      .eq('user_id', profile?.id);
 
     if (!error) {
-      setComments(comments.filter(c => c.id !== commentId));
+      fetchComments();
     }
   };
 
@@ -118,16 +143,45 @@ export default function StationCommunity({ stationId, stationName }: StationComm
       .from('station_comments')
       .update({ content: editContent.trim() })
       .eq('id', commentId)
-      .eq('user_id', profile?.id); // Verify it's their own comment
+      .eq('user_id', profile?.id);
 
     if (!error) {
-      setComments(comments.map(c =>
-        c.id === commentId ? { ...c, content: editContent.trim() } : c
-      ));
+      fetchComments();
       setEditingCommentId(null);
       setEditContent('');
     } else {
-      alert('댓글 수정에 실패했습니다. (보안 정책 문제)');
+      alert('댓글 수정에 실패했습니다.');
+    }
+  };
+
+  const handleToggleLike = async (commentId: string, isCurrentlyLiked: boolean) => {
+    if (!profile) {
+      alert('로그인 후 이용 가능합니다.');
+      return;
+    }
+
+    // Optimistic UI Update
+    const updateLikes = (list: Comment[]): Comment[] => {
+      return list.map(c => {
+        if (c.id === commentId) {
+          return {
+            ...c,
+            isLiked: !isCurrentlyLiked,
+            likesCount: c.likesCount + (isCurrentlyLiked ? -1 : 1)
+          };
+        }
+        if (c.replies && c.replies.length > 0) {
+          return { ...c, replies: updateLikes(c.replies) };
+        }
+        return c;
+      });
+    };
+    setComments(prev => updateLikes(prev));
+
+    if (isCurrentlyLiked) {
+      await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', profile.id);
+    } else {
+      await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: profile.id });
     }
   };
 
@@ -161,6 +215,121 @@ export default function StationCommunity({ stationId, stationName }: StationComm
     return date.toLocaleDateString();
   };
 
+  // 내부 렌더링 함수: 재귀 렌더링을 통해 리렌더링 시 포커스 잃음(한글 끊김) 방지
+  const renderCommentItem = (comment: Comment, isReply = false) => {
+    return (
+      <div key={comment.id} className={`flex flex-col gap-2 ${isReply ? 'mt-2' : 'mt-4'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+        <div className="flex gap-3">
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
+            <img 
+              src={getAvatarUrl(comment.profiles.avatar_url)}
+              alt="avatar" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[12px] font-extrabold text-gray-800">{maskNickname(comment.profiles?.nickname || 'Unknown')}</span>
+              <span className="text-[10px] text-gray-400">{formatTime(comment.created_at)}</span>
+              {!isReply && comment.rating && (
+                <span className="flex items-center gap-0.5">
+                  {[1,2,3,4,5].map(s => (
+                    <svg key={s} width="10" height="10" viewBox="0 0 24 24" fill={s <= comment.rating! ? '#f59e0b' : '#e5e7eb'}>
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  ))}
+                </span>
+              )}
+
+              {profile?.id === comment.user_id ? (
+                <div className="ml-auto flex gap-1.5">
+                  <button onClick={() => handleEditClick(comment)} className="text-[10px] text-gray-400 hover:text-teal-500 transition-colors px-1 font-semibold">수정</button>
+                  <button onClick={() => handleDelete(comment.id)} className="text-[10px] text-gray-400 hover:text-red-500 transition-colors px-1 font-semibold">삭제</button>
+                </div>
+              ) : (
+                <button onClick={() => handleReport(comment.id)} className="ml-auto text-[10px] text-gray-300 hover:text-orange-500 transition-colors px-1 flex items-center gap-0.5 font-semibold">신고</button>
+              )}
+            </div>
+
+            {editingCommentId === comment.id ? (
+              <div className="mt-1 flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full px-3 py-2 text-[13px] bg-white border border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 text-[11px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">취소</button>
+                  <button onClick={() => handleUpdate(comment.id)} className="px-3 py-1 text-[11px] font-bold text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors">저장</button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white px-3.5 py-2.5 rounded-2xl rounded-tl-none border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] inline-block max-w-full">
+                <p className="text-[13px] text-gray-700 leading-snug break-words whitespace-pre-wrap">{comment.content}</p>
+              </div>
+            )}
+            
+            {/* 좋아요 & 답글달기 액션 바 */}
+            <div className="flex items-center gap-3 mt-1.5 ml-1">
+              <button 
+                onClick={() => handleToggleLike(comment.id, comment.isLiked)}
+                className={`flex items-center gap-1 text-[10px] font-bold transition-colors ${comment.isLiked ? 'text-rose-500' : 'text-gray-400 hover:text-rose-400'}`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill={comment.isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                {comment.likesCount > 0 && comment.likesCount}
+              </button>
+
+              {!isReply && (
+                <button 
+                  onClick={() => {
+                    setReplyingToId(replyingToId === comment.id ? null : comment.id);
+                    setReplyContent('');
+                  }}
+                  className={`text-[10px] font-bold transition-colors ${replyingToId === comment.id ? 'text-teal-600' : 'text-gray-400 hover:text-teal-500'}`}
+                >
+                  답글 달기
+                </button>
+              )}
+            </div>
+
+            {/* 답글 입력창 */}
+            {replyingToId === comment.id && !isReply && (
+              <form onSubmit={(e) => handleSubmit(e, comment.id)} className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="답글을 입력하세요"
+                  className="flex-1 px-3 py-1.5 bg-gray-50 border border-teal-100 rounded-xl focus:outline-none focus:border-teal-400 focus:bg-white text-[12px] transition-all"
+                  maxLength={150}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={submitting || !replyContent.trim()}
+                  className="px-3 py-1.5 flex items-center justify-center rounded-xl bg-teal-500 text-white text-[11px] font-bold shrink-0 hover:bg-teal-600 disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  등록
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* 대댓글 리스트 렌더링 */}
+        {!isReply && comment.replies && comment.replies.length > 0 && (
+          <div className="flex flex-col gap-1 border-l-2 border-gray-100 pl-3 ml-4 mt-2">
+            {comment.replies.map(reply => renderCommentItem(reply, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -185,102 +354,23 @@ export default function StationCommunity({ stationId, stationName }: StationComm
             );
           })()}
           <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-            {comments.length}
+            {comments.length + comments.reduce((acc, c) => acc + (c.replies?.length || 0), 0)}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50/30 max-h-[250px]">
+      <div className="flex-1 overflow-y-auto p-4 pt-1 flex flex-col gap-1 bg-gray-50/30 max-h-[250px]">
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <div className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full animate-spin"></div>
           </div>
         ) : comments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="flex flex-col items-center justify-center py-6 text-center mt-4">
             <p className="text-[13px] font-bold text-gray-400 mb-1">아직 등록된 제보가 없습니다.</p>
             <p className="text-[11px] text-gray-400">가장 먼저 현장 상황을 알려주세요!</p>
           </div>
         ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
-                <img 
-                  src={getAvatarUrl(comment.profiles.avatar_url)}
-                  alt="avatar" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[12px] font-extrabold text-gray-800">{maskNickname(comment.profiles?.nickname || 'Unknown')}</span>
-                  <span className="text-[10px] text-gray-400">{formatTime(comment.created_at)}</span>
-                  {comment.rating && (
-                    <span className="flex items-center gap-0.5">
-                      {[1,2,3,4,5].map(s => (
-                        <svg key={s} width="10" height="10" viewBox="0 0 24 24" fill={s <= comment.rating! ? '#f59e0b' : '#e5e7eb'}>
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                      ))}
-                    </span>
-                  )}
-
-                  {profile?.id === comment.user_id ? (
-                    <div className="ml-auto flex gap-1.5">
-                      <button
-                        onClick={() => handleEditClick(comment)}
-                        className="text-[10px] text-gray-400 hover:text-teal-500 transition-colors px-1 font-semibold"
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => handleDelete(comment.id)}
-                        className="text-[10px] text-gray-400 hover:text-red-500 transition-colors px-1 font-semibold"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleReport(comment.id)}
-                      className="ml-auto text-[10px] text-gray-300 hover:text-orange-500 transition-colors px-1 flex items-center gap-0.5 font-semibold"
-                    >
-                      신고
-                    </button>
-                  )}
-                </div>
-
-                {editingCommentId === comment.id ? (
-                  <div className="mt-1 flex flex-col gap-2">
-                    <input
-                      type="text"
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full px-3 py-2 text-[13px] bg-white border border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                      autoFocus
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditingCommentId(null)}
-                        className="px-3 py-1 text-[11px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={() => handleUpdate(comment.id)}
-                        className="px-3 py-1 text-[11px] font-bold text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors"
-                      >
-                        저장
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white px-3.5 py-2.5 rounded-2xl rounded-tl-none border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] inline-block max-w-full">
-                    <p className="text-[13px] text-gray-700 leading-snug break-words whitespace-pre-wrap">{comment.content}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
+          comments.map((comment) => renderCommentItem(comment))
         )}
       </div>
 
@@ -294,7 +384,7 @@ export default function StationCommunity({ stationId, stationName }: StationComm
             <p className="text-[12px] font-bold text-teal-600">상단에서 프로필 설정을 완료해주세요.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <form onSubmit={(e) => handleSubmit(e, null)} className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
               <span className="text-[11px] text-gray-400 font-semibold mr-1">별점</span>
               {[1,2,3,4,5].map(s => (

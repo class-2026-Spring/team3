@@ -10,10 +10,36 @@ import { useFavorites } from '../hooks/useFavorites';
 import { getStatColor, getStationStats, getStationRepresentativeStat } from '../types/charger';
 import { supabase } from '../lib/supabase';
 import StationCommunity from '../components/charger/StationCommunity';
+import { useAppContext } from '../contexts/AppContext';
+import { getStatLabel } from '../types/charger';
 
 export default function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const { settings, addNotification } = useAppContext();
+  const [userId, setUserId] = useState<string | null>(null);
+  const { isFavorite, toggleFavorite } = useFavorites(userId);
+
+  const handleStatusChange = React.useCallback((stationId: string, stationName: string, oldStat: string, newStat: string) => {
+    if (!settings.notifications.enabled || !settings.notifications.favoriteStatusChange) return;
+    if (!isFavorite(stationId)) return;
+
+    const isNowAvailable = newStat === '2';
+    const isInUse = newStat === '3';
+    const statusLabel = getStatLabel(newStat);
+    
+    let message = `${stationName} 상태가 '${statusLabel}'(으)로 변경되었습니다.`;
+    if (isNowAvailable) message = `${stationName} 충전기에 빈자리가 생겼습니다.`;
+    else if (isInUse) message = `${stationName} 충전기 자리가 모두 찼습니다 (충전중).`;
+
+    addNotification({
+      type: isNowAvailable ? 'available' : isInUse ? 'unavailable' : 'status_change',
+      stationId,
+      stationName,
+      message,
+    });
+  }, [settings.notifications.enabled, settings.notifications.favoriteStatusChange, isFavorite, addNotification]);
 
   const {
     chargers, loading, statusLoading, error,
@@ -23,10 +49,8 @@ export default function Home() {
     searchQuery, setSearchQuery,
     selectedCharger, setSelectedCharger,
     filteredChargers, searchResults, districtSearchResults,
-  } = useChargerData();
+  } = useChargerData(handleStatusChange);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const { isFavorite, toggleFavorite } = useFavorites(userId);
   const [isListExpanded, setIsListExpanded] = useState(false);
   const [showLoginToast, setShowLoginToast] = useState(false);
 

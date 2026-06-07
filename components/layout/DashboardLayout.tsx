@@ -59,7 +59,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         user={user}
         unreadCount={unreadCount}
         onSignIn={() => setShowAuthModal(true)}
-        onSignOut={handleSignOut}
+        onSignOut={signOut}
         onSettings={() => { setShowSettings(true); setShowNotifications(false); }}
         onNotifications={() => { setShowNotifications(true); setShowSettings(false); }}
         showMobile={showSidebar}

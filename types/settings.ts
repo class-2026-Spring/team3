@@ -7,6 +7,7 @@ export type MapFilter = '전체' | '급속' | '완속'; // charger.ts의 FilterT
 export interface NotificationSettings {
   enabled: boolean;
   favoriteStatusChange: boolean;
+  favoriteComments: boolean;
 }
 
 export interface AppSettings {
@@ -25,5 +26,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   notifications: {
     enabled: true,
     favoriteStatusChange: true,
+    favoriteComments: true,
   },
 };
