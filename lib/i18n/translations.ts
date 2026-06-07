@@ -5,7 +5,7 @@ export const translations = {
       login: '카카오 로그인',
       logout: '로그아웃',
       main: '메인 메뉴',
-      map: '충전소 지도',
+      map: '충전소',
       favorites: '즐겨찾기',
       notifications: '알림 내역',
       settings: '설정',
