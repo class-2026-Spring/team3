@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { getAvatarUrl } from "../../lib/utils";
 import EditProfileModal from "../auth/EditProfileModal";
 
 export default function Sidebar() {
@@ -57,7 +56,7 @@ export default function Sidebar() {
           <div className={getIconClass("/ai")}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 19H5v-2h4v2zm0-4H5v-2h4v2zm0-4H5V9h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2zm4 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V9h4v2z" /></svg>
           </div>
-          <span className="text-[13px]">AI</span>
+          <span className="text-[13px]">AI Assistant</span>
         </Link>
 
         <div className="pt-4 pb-2 px-4">
@@ -70,24 +69,17 @@ export default function Sidebar() {
           </div>
           <span className="text-[13px]">즐겨찾기</span>
         </Link>
-
-        <Link href="/mycomments" className={getTabClass("/mycomments")}>
-          <div className={getIconClass("/mycomments")}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
-          </div>
-          <span className="text-[13px]">내 댓글</span>
-        </Link>
       </div>
 
       {/* Profile Section */}
       {session && profile && (
         <div className="p-4 mt-auto border-t border-gray-100">
-          <div
+          <div 
             onClick={() => setShowEditModal(true)}
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors group"
           >
             <div className="relative">
-              <img src={getAvatarUrl(profile.avatar_url)} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-[2.5px] border-teal-100/60 bg-gray-100" />
+              <img src={`/avatars/${profile.avatar_url}`} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-[2.5px] border-teal-100/60 bg-gray-100" />
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-500 border-2 border-white rounded-full"></div>
             </div>
             <div className="flex-1 min-w-0">
