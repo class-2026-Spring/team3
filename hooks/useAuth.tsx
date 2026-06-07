@@ -19,6 +19,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   createProfile: (nickname: string, avatarUrl: string) => Promise<boolean>;
   updateProfile: (nickname: string, avatarUrl: string) => Promise<boolean>;
+  checkNicknameUnique: (nickname: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,7 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .single();
     
-    if (!error && data) {
+    // 닉네임이 설정되어 있어야만 유효한 프로필로 간주
+    if (!error && data && data.nickname) {
       setProfile(data as UserProfile);
     } else {
       setProfile(null);
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const createProfile = async (nickname: string, avatarUrl: string) => {
     if (!session?.user) return false;
-    const { data, error } = await supabase.from('profiles').insert([{ id: session.user.id, nickname, avatar_url: avatarUrl }]).select().single();
+    const { data, error } = await supabase.from('profiles').upsert([{ id: session.user.id, nickname, avatar_url: avatarUrl }]).select().single();
     if (!error && data) {
       setProfile(data as UserProfile);
       return true;
@@ -99,8 +101,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
+  const checkNicknameUnique = async (nickname: string) => {
+    if (!nickname.trim()) return false;
+    
+    // 현재 사용자의 기존 닉네임과 같다면 중복이 아님
+    if (session?.user && profile?.nickname === nickname.trim()) {
+      return true;
+    }
+
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('nickname', nickname.trim());
+      
+    if (error) {
+      console.error('Error checking nickname uniqueness:', error);
+      return false; 
+    }
+    
+    return count === 0;
+  };
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signInWithGoogle, signInWithKakao, signOut, createProfile, updateProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, signInWithGoogle, signInWithKakao, signOut, createProfile, updateProfile, checkNicknameUnique }}>
       {children}
     </AuthContext.Provider>
   );

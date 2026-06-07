@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Haversine formula to calculate distance between two coordinates
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -78,13 +80,16 @@ export default function AiPage() {
 
           setNearestContext(top10);
 
+          const userText = `현재 제 위치(위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}) 반경 1km 이내의 가장 가까운 충전소들을 알려줘.`;
+          
+          const currentHistory = [...messages];
           setMessages(prev => [...prev, {
             id: Date.now().toString(),
             role: 'user',
-            text: `현재 제 위치(위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}) 반경 1km 이내의 가장 가까운 충전소들을 알려줘.`
+            text: userText
           }]);
 
-          await fetchAIResponse(`현재 내 위치 반경 1km 이내의 가장 가까운 충전소를 추천해줘.`, top10, true);
+          await fetchAIResponse(userText, currentHistory, top10, true);
 
         } catch (error) {
           console.error("데이터 로딩 실패:", error);
@@ -100,13 +105,17 @@ export default function AiPage() {
     );
   };
 
-  const fetchAIResponse = async (userMessage: string, context: any[], attachContext: boolean = false) => {
+  const fetchAIResponse = async (userMessage: string, history: Message[], context: any[], attachContext: boolean = false) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, context })
+        body: JSON.stringify({ 
+          message: userMessage,
+          history: history.map(h => ({ id: h.id, role: h.role === 'ai' ? 'model' : 'user', text: h.text })),
+          context 
+        })
       });
 
       const data = await response.json();
@@ -137,9 +146,11 @@ export default function AiPage() {
 
     const userMessage = input;
     setInput('');
+    
+    const currentHistory = [...messages];
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: userMessage }]);
 
-    await fetchAIResponse(userMessage, nearestContext);
+    await fetchAIResponse(userMessage, currentHistory, nearestContext);
   };
 
   return (
@@ -178,8 +189,34 @@ export default function AiPage() {
               ? 'bg-teal-500 text-white rounded-tr-sm'
               : 'bg-white border border-gray-100 text-gray-700 rounded-tl-sm'
               }`}>
-              {/* Parse rudimentary markdown for bold texts etc if needed, or just plain text */}
-              <div className="whitespace-pre-wrap">{msg.text}</div>
+              {/* Parse markdown for AI messages, plain text for user */}
+              <div className={`whitespace-pre-wrap ${msg.role === 'ai' ? 'markdown-body' : ''}`}>
+                {msg.role === 'ai' ? (
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                      strong: ({node, ...props}) => <strong className="font-bold text-teal-800" {...props} />,
+                      ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                      ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                      li: ({node, ...props}) => <li className="" {...props} />,
+                      a: ({node, ...props}) => <a className="text-teal-600 underline hover:text-teal-800" {...props} />,
+                      h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2 mt-4 text-gray-800" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="text-base font-bold mb-2 mt-3 text-gray-800" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-2 text-gray-800" {...props} />,
+                      code: ({node, inline, className, children, ...props}: any) => {
+                        return inline 
+                          ? <code className="bg-gray-100 text-teal-600 px-1 py-0.5 rounded text-xs" {...props}>{children}</code>
+                          : <code className="block bg-gray-100 text-gray-800 p-2 rounded text-xs overflow-x-auto my-2" {...props}>{children}</code>
+                      },
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
+              </div>
               {msg.stations && msg.stations.length > 0 && (
                 <div className="flex flex-col gap-2 mt-2">
                   <h4 className="font-bold text-[12px] text-teal-600 mb-1">근처 충전소 추천 목록</h4>

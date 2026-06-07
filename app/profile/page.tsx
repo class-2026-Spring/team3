@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
+import { getAvatarUrl } from '../../lib/utils';
 
 interface Profile {
   id: string;
@@ -12,6 +14,7 @@ interface Profile {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { checkNicknameUnique } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<any>(null);
@@ -72,7 +75,21 @@ export default function ProfilePage() {
   // 프로필 저장 (닉네임 + 아바타)
   const handleSaveProfile = async () => {
     if (!user) return;
+    if (!nickname.trim()) {
+      showMessage('error', '닉네임을 입력해주세요');
+      return;
+    }
+    
     setSaving(true);
+    
+    // 닉네임 중복 체크
+    const isUnique = await checkNicknameUnique(nickname);
+    if (!isUnique) {
+      showMessage('error', '이미 사용 중인 닉네임입니다');
+      setSaving(false);
+      return;
+    }
+
     try {
       let avatar_url = profile?.avatar_url ?? null;
 
@@ -165,7 +182,7 @@ export default function ProfilePage() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover"/>
+                  <img src={avatarPreview.startsWith('blob:') ? avatarPreview : getAvatarUrl(avatarPreview)} alt="avatar" className="w-full h-full object-cover bg-gray-50"/>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-teal-100">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#0d9488">

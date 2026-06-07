@@ -4,34 +4,30 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import AuthModal from "../auth/AuthModal";
-import { supabase } from "../../lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { useAuth } from "../../hooks/useAuth";
+import { getAvatarUrl } from "../../lib/utils";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const { session, profile, loading, signOut } = useAuth();
 
-  // 로그인 상태 감지
+  // 로그인 모달 자동 제어 (로그인 후 프로필이 없으면 띄우고, 다 있으면 닫기)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session) setShowAuthModal(false); // 로그인 성공 시 모달 닫기
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
+    if (loading) return;
+    
+    if (session && !profile) {
+      setShowAuthModal(true);
+    } else if (session && profile) {
+      setShowAuthModal(false);
+    }
+  }, [session, profile, loading]);
 
   const getPageTitle = () => {
     switch (pathname) {
       case "/": return "Home";
       case "/ai": return "Ai Assistant";
+      case "/favorite": return "Favorites";
       default: return "Dashboard";
     }
   };
@@ -64,14 +60,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4">
 
             {/* 로그인/로그아웃 버튼 */}
-            {user ? (
+            {session ? (
               <div className="flex items-center gap-3">
-                <span className="text-white/80 text-xs font-medium hidden md:block truncate max-w-[120px]">
-                  {user.email ?? user.user_metadata?.full_name ?? '사용자'}
-                </span>
+                {profile && (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={getAvatarUrl(profile.avatar_url)} 
+                      alt="Avatar" 
+                      className="w-7 h-7 rounded-full border border-white/50 object-cover"
+                    />
+                    <span className="text-white font-bold text-xs hidden md:block">
+                      {profile.nickname}
+                    </span>
+                  </div>
+                )}
                 <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-1.5 text-white/90 hover:text-white font-bold text-xs transition-opacity bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg"
+                  onClick={signOut}
+                  className="flex items-center gap-1.5 text-white/90 hover:text-white font-bold text-xs transition-opacity bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg ml-2"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -107,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* 로그인 모달 */}
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

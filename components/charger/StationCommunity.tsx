@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { getAvatarUrl } from '../../lib/utils';
 
 interface Comment {
   id: string;
@@ -180,11 +181,13 @@ export default function StationCommunity({ stationId }: StationCommunityProps) {
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <img
-                src={`/avatars/${comment.profiles.avatar_url || 'a.png'}`}
-                alt="Avatar"
-                className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0 bg-white"
-              />
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
+                <img 
+                  src={getAvatarUrl(comment.profiles.avatar_url)}
+                  alt="avatar" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[12px] font-extrabold text-gray-800">{maskNickname(comment.profiles?.nickname || 'Unknown')}</span>
@@ -210,7 +213,7 @@ export default function StationCommunity({ stationId }: StationCommunityProps) {
                       onClick={() => handleReport(comment.id)}
                       className="ml-auto text-[10px] text-gray-300 hover:text-orange-500 transition-colors px-1 flex items-center gap-0.5 font-semibold"
                     >
-                      🚨 신고
+                      신고
                     </button>
                   )}
                 </div>

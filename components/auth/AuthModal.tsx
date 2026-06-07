@@ -1,21 +1,36 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import AvatarCustomizer from './AvatarCustomizer';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const AVATARS = ['a.png', 'b.png', 'c.png', 'd.png', 'e.png'];
-
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { session, profile, loading, signInWithGoogle, signInWithKakao, createProfile } = useAuth();
+  const { session, profile, loading, signInWithGoogle, signInWithKakao, createProfile, signOut, checkNicknameUnique } = useAuth();
   
   const [nickname, setNickname] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[Math.floor(Math.random() * AVATARS.length)]);
+  const [avatars, setAvatars] = useState<string[]>(['a.png', 'b.png', 'c.png', 'd.png', 'e.png']);
+  const [selectedAvatar, setSelectedAvatar] = useState('a.png');
+  const [avatarMode, setAvatarMode] = useState<'basic' | 'custom'>('basic');
+  const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // 닉네임 자동 로드 (아바타 목록 동적 가져오기)
+  useEffect(() => {
+    fetch('/api/avatars')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAvatars(data);
+          setSelectedAvatar(data[Math.floor(Math.random() * data.length)]);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // If already logged in and has profile, close modal automatically
   useEffect(() => {
@@ -33,7 +48,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     
     setIsSubmitting(true);
     setErrorMsg('');
-    const success = await createProfile(nickname, selectedAvatar);
+    
+    // 닉네임 중복 체크
+    const isUnique = await checkNicknameUnique(nickname);
+    if (!isUnique) {
+      setErrorMsg('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const avatarToSave = avatarMode === 'custom' ? customAvatarUrl : selectedAvatar;
+      
+    const success = await createProfile(nickname, avatarToSave);
     if (!success) {
       setErrorMsg('프로필 생성에 실패했습니다. 닉네임이 중복될 수 있습니다.');
     }
@@ -43,14 +69,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-sm p-4 transition-colors ${session && !profile ? 'bg-zinc-900/95' : 'bg-black/40'}`} onClick={onClose}>
+    <div className={`fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-sm p-4 transition-colors ${session && !profile ? 'bg-[#F8F9FA]/95' : 'bg-black/40'}`} onClick={session && !profile ? undefined : onClose}>
       <div className={`${session && !profile ? 'w-full max-w-4xl bg-transparent shadow-none' : 'bg-white w-full max-w-sm rounded-[24px] shadow-2xl'} overflow-hidden relative transition-all duration-500`} onClick={e => e.stopPropagation()}>
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        {!(session && !profile) && (
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        )}
 
         <div className={session && !profile ? 'p-6 md:p-12' : 'p-8'}>
           {!(session && !profile) && (
@@ -94,33 +122,46 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           ) : !profile ? (
             <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in zoom-in-95 duration-500">
-              <h1 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">프로필을 선택해주세요</h1>
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">프로필을 선택해주세요</h1>
               
-              <p className="text-zinc-400 font-medium mb-10 md:mb-16 bg-zinc-800/50 px-5 py-2 rounded-full border border-zinc-700/50 text-sm md:text-base">
-                현재 로그인된 계정: <span className="text-white font-bold ml-1">{session?.user?.email || '알 수 없음'}</span>
+              <p className="text-gray-500 font-medium mb-10 md:mb-16 bg-gray-100 px-5 py-2 rounded-full border border-gray-200 text-sm md:text-base">
+                현재 로그인된 계정: <span className="text-gray-800 font-bold ml-1">{session?.user?.email || '알 수 없음'}</span>
               </p>
               
-              <form onSubmit={handleCreateProfile} className="flex flex-col items-center w-full max-w-2xl gap-10 md:gap-14">
-                <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-                  {AVATARS.map((avatar) => (
-                    <div key={avatar} className="flex flex-col items-center gap-3 group">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAvatar(avatar)}
-                        className={`relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border-[3px] transition-all duration-300 ${
-                          selectedAvatar === avatar 
-                            ? 'border-white scale-110 shadow-[0_0_20px_rgba(255,255,255,0.3)]' 
-                            : 'border-transparent group-hover:border-white/50 group-hover:scale-105 opacity-60 group-hover:opacity-100'
-                        }`}
-                      >
-                        <img src={`/avatars/${avatar}`} alt="Avatar" className="w-full h-full object-cover" />
-                      </button>
-                      {selectedAvatar === avatar && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white mt-1 animate-pulse"></div>
-                      )}
-                    </div>
-                  ))}
+              <form onSubmit={handleCreateProfile} className="flex flex-col items-center w-full max-w-2xl gap-8 md:gap-10">
+                {/* Mode Toggle */}
+                <div className="flex bg-gray-100 p-1 rounded-xl w-64 mx-auto mb-2">
+                  <button type="button" onClick={() => setAvatarMode('basic')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${avatarMode === 'basic' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>기본 캐릭터</button>
+                  <button type="button" onClick={() => setAvatarMode('custom')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${avatarMode === 'custom' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>직접 만들기</button>
                 </div>
+
+                {avatarMode === 'basic' ? (
+                  <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+                    {avatars.map((avatar) => (
+                      <div key={avatar} className="flex flex-col items-center gap-3 group">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAvatar(avatar)}
+                          className={`relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border-[3px] transition-all duration-300 ${
+                            selectedAvatar === avatar 
+                              ? 'border-teal-500 scale-110 shadow-[0_0_20px_rgba(20,184,166,0.3)]' 
+                              : 'border-transparent group-hover:border-teal-200 group-hover:scale-105 opacity-70 group-hover:opacity-100'
+                          }`}
+                        >
+                          <img src={`/avatars/${avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                        </button>
+                        {selectedAvatar === avatar && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1 animate-pulse"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <AvatarCustomizer 
+                    onChange={setCustomAvatarUrl} 
+                    defaultNickname={nickname} 
+                  />
+                )}
 
                 <div className="w-full max-w-md mt-4">
                   <div className="relative">
@@ -129,23 +170,29 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
                       placeholder="닉네임 입력"
-                      className="w-full bg-zinc-800/80 text-white text-xl md:text-2xl font-bold px-6 py-4 md:py-5 rounded-xl border-2 border-zinc-700 focus:outline-none focus:border-white transition-colors placeholder:text-zinc-500 text-center"
+                      className="w-full bg-white text-gray-900 text-xl md:text-2xl font-bold px-6 py-4 md:py-5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all placeholder:text-gray-400 text-center shadow-sm"
                       maxLength={15}
                     />
                   </div>
                   {errorMsg && (
-                    <p className="text-sm font-bold text-red-400 text-center mt-3 animate-pulse">{errorMsg}</p>
+                    <p className="text-sm font-bold text-red-500 text-center mt-3 animate-pulse">{errorMsg}</p>
                   )}
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting || !nickname.trim()}
-                  className="mt-2 bg-white text-black hover:bg-zinc-200 text-lg md:text-xl font-extrabold px-12 py-4 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                  className="mt-2 w-full max-w-xs bg-teal-500 text-white hover:bg-teal-600 text-lg md:text-xl font-extrabold py-4 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 shadow-lg shadow-teal-500/30"
                 >
                   {isSubmitting ? '시작하는 중...' : '시작하기'}
                 </button>
               </form>
+              <button 
+                onClick={() => { signOut(); onClose(); }} 
+                className="mt-6 text-gray-400 hover:text-gray-600 text-sm font-medium transition-colors"
+              >
+                다른 계정으로 로그인하기 (로그아웃)
+              </button>
             </div>
           ) : null}
         </div>

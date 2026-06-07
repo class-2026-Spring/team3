@@ -282,10 +282,10 @@ function FilterTabs({
           className="w-full appearance-none bg-gray-50 border border-gray-200/80 text-gray-700 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100"
         >
           <option value="전체">상태</option>
-          <option value="사용가능">🟢 사용가능</option>
-          <option value="충전중">🔵 충전중</option>
-          <option value="중지">🔴 중지</option>
-          <option value="점검">🟠 점검</option>
+          <option value="사용가능">🟢 (사용가능)</option>
+          <option value="충전중">🔵 (충전중)</option>
+          <option value="중지">🔴 (중지)</option>
+          <option value="점검">🟠 (점검)</option>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-gray-400">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
