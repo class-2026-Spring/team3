@@ -3,25 +3,19 @@ import { supabase } from '../lib/supabase';
 import { Charger } from '../types/charger';
 
 export function useFavorites(userId: string | null) {
-  const [favorites, setFavorites] = useState<string[]>([]); // station_id 목록
-  const [favoriteNames, setFavoriteNames] = useState<Record<string, string>>({}); // { station_id: station_name }
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoriteNames, setFavoriteNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!userId) {
-      setFavorites([]);
-      setFavoriteNames({});
-      return;
-    }
+    if (!userId) { setFavorites([]); setFavoriteNames({}); return; }
     const load = async () => {
       setLoading(true);
       const { data } = await supabase
         .from('favorites')
         .select('station_id, station_name')
         .eq('user_id', userId);
-
       setFavorites(data?.map(r => r.station_id) ?? []);
-      // { station_id: station_name } 형태로 변환
       const names: Record<string, string> = {};
       data?.forEach(r => { names[r.station_id] = r.station_name; });
       setFavoriteNames(names);

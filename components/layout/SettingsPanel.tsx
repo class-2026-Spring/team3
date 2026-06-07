@@ -219,6 +219,28 @@ export default function SettingsPanel({ open, onClose }: Props) {
                   disabled={!settings.notifications.enabled}
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-xs font-semibold ${settings.notifications.enabled ? 'text-gray-600' : 'text-gray-300'}`}>
+                    즐겨찾기 새 댓글 알림
+                  </p>
+                  <p className={`text-[10px] mt-0.5 ${settings.notifications.enabled ? 'text-gray-400' : 'text-gray-200'}`}>
+                    즐겨찾기 충전소에 새 댓글 등록 시 알림
+                  </p>
+                </div>
+                <Toggle
+                  checked={settings.notifications.favoriteComments}
+                  onChange={() =>
+                    updateSettings({
+                      notifications: {
+                        ...settings.notifications,
+                        favoriteComments: !settings.notifications.favoriteComments,
+                      },
+                    })
+                  }
+                  disabled={!settings.notifications.enabled}
+                />
+              </div>
             </div>
           </section>
         </div>
