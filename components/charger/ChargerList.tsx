@@ -16,6 +16,10 @@ interface ChargerListProps {
   onToggleFavorite: (charger: Charger) => void;
   statusFilter: '전체' | '사용가능' | '충전중' | '중지';
   setStatusFilter: (f: '전체' | '사용가능' | '충전중' | '중지') => void;
+  // 비교 기능
+  isInCompare: (id: string) => boolean;
+  onToggleCompare: (charger: Charger) => void;
+  canAddCompare: boolean;
 }
 
 export default function ChargerList({
@@ -23,13 +27,11 @@ export default function ChargerList({
   selectCity, selectDistrict, resetToCity, resetToDistrict,
   chargeFilter, setChargeFilter, onSelectCharger,
   isFavorite, onToggleFavorite,
-  statusFilter, setStatusFilter
+  statusFilter, setStatusFilter,
+  isInCompare, onToggleCompare, canAddCompare,
 }: ChargerListProps) {
   const { level, selectedCity, selectedDistrict } = zoomState;
   const { t } = useTranslation();
-
-  // chargers prop은 이미 chargeFilter가 적용된 filteredChargers임
-  // level별로 그룹화에만 사용
 
   // ── LEVEL 1: 시 단위 ──────────────────────────────────────
   if (level === 'city') {
@@ -92,7 +94,6 @@ export default function ChargerList({
       districtGroups[c.district].push(c);
     });
 
-    // 즐겨찾기 포함 읍면동 상위 정렬
     const sortedDistricts = Object.entries(districtGroups).sort((a, b) => {
       const aHasFav = a[1].some(c => isFavorite(c.id));
       const bHasFav = b[1].some(c => isFavorite(c.id));
@@ -149,8 +150,7 @@ export default function ChargerList({
     );
   }
 
-  // ── LEVEL 3: 개별 충전소 (즐겨찾기 상위 정렬) ─────────────
-  // 즐겨찾기 먼저, 나머지는 이름순
+  // ── LEVEL 3: 개별 충전소 ──────────────────────────────────
   const sortedChargers = [...chargers].sort((a, b) => {
     const aFav = isFavorite(a.id);
     const bFav = isFavorite(b.id);
@@ -189,9 +189,16 @@ export default function ChargerList({
               const repStat = getStationRepresentativeStat(charger.chargers);
               const stats = getStationStats(charger.chargers);
               const fav = isFavorite(charger.id);
+              const inCompare = isInCompare(charger.id);
               return (
                 <div key={charger.id} onClick={() => onSelectCharger(charger)}
-                  className={`p-3.5 rounded-xl border bg-white dark:bg-gray-800 flex justify-between items-center cursor-pointer hover:shadow-md transition-all group ${fav ? 'border-yellow-200 dark:border-yellow-700/50 bg-yellow-50/20 dark:bg-yellow-900/10' : 'border-gray-200/60 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600'}`}>
+                  className={`p-3.5 rounded-xl border bg-white dark:bg-gray-800 flex justify-between items-center cursor-pointer hover:shadow-md transition-all group ${
+                    inCompare
+                      ? 'border-teal-300 dark:border-teal-600 ring-1 ring-teal-200 dark:ring-teal-800'
+                      : fav
+                      ? 'border-yellow-200 dark:border-yellow-700/50 bg-yellow-50/20 dark:bg-yellow-900/10'
+                      : 'border-gray-200/60 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600'
+                  }`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-[14px] font-bold text-gray-900 dark:text-gray-100 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors truncate">{charger.name}</p>
@@ -204,6 +211,7 @@ export default function ChargerList({
                     </div>
                   </div>
                   <div className="ml-2 shrink-0 flex flex-col items-end gap-1.5">
+                    {/* 즐겨찾기 버튼 */}
                     <button
                       onClick={e => { e.stopPropagation(); onToggleFavorite(charger); }}
                       className="p-1 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
@@ -214,6 +222,30 @@ export default function ChargerList({
                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                       </svg>
+                    </button>
+                    {/* 비교 버튼 */}
+                    <button
+                      onClick={e => { e.stopPropagation(); onToggleCompare(charger); }}
+                      title={inCompare ? '비교에서 제거' : canAddCompare ? '비교에 추가' : '최대 3개까지 비교 가능'}
+                      className={`p-1 rounded-full transition-colors ${
+                        inCompare
+                          ? 'text-teal-500 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100'
+                          : canAddCompare
+                          ? 'text-gray-300 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20'
+                          : 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                      }`}
+                    >
+                      {inCompare ? (
+                        // 제거 아이콘 (체크)
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      ) : (
+                        // 추가 아이콘 (⊕)
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                      )}
                     </button>
                     <span className="text-[12px] font-bold" style={{ color: getStatColor(repStat) }}>{getStatLabel(repStat)}</span>
                   </div>
@@ -251,7 +283,6 @@ function FilterTabs({
 
   return (
     <div className="flex gap-2 w-full">
-      {/* 지역 필터 */}
       <div className="relative flex-1">
         <select value={currentCity} onChange={(e) => handleCityChange(e.target.value)}
           className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -265,7 +296,6 @@ function FilterTabs({
         </div>
       </div>
 
-      {/* 유형 필터 */}
       <div className="relative flex-1">
         <select value={chargeFilter} onChange={(e) => setChargeFilter(e.target.value as FilterType)}
           className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -279,7 +309,6 @@ function FilterTabs({
         </div>
       </div>
 
-      {/* 상태 필터 */}
       <div className="relative flex-[1.2]">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusType)}
           className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"

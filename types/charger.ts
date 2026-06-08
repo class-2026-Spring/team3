@@ -42,7 +42,7 @@ export const isFastCharger = (type: string): boolean => {
   // 01: DC차데모, 02: AC완속, 03: DC차데모+AC3상, 04: DC콤보, 05: DC콤보+차데모, 06: DC콤보+차데모+AC3상, 07: 슈퍼차저
   // 급속: DC계열 (01, 03, 04, 05, 06, 07), 완속: AC (02)
   // Kakao.tsx 인라인 isFast와 기준 통일
-  return ['01', '02', '03', '04', '05'].includes(type);
+  return ['01', '03', '04', '05', '06', '07'].includes(type);
 };
 
 // 충전소 전체 상태 대표값 (사용 가능한 충전기가 1개라도 있으면 '2', 아니면 가장 많은 상태)
