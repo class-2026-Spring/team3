@@ -32,7 +32,10 @@ export interface ZoomState {
 }
 
 export function useChargerData(
-  onStatusChange?: (stationId: string, stationName: string, oldRepStat: string, newRepStat: string) => void
+  onStatusChange?: (stationId: string, stationName: string, oldRepStat: string, newRepStat: string) => void,
+  initialChargeFilter: FilterType = '전체',
+  isSettingsLoaded: boolean = false,
+  showAvailableOnly: boolean = false
 ) {
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -47,9 +50,26 @@ export function useChargerData(
   });
 
   const [chargeFilter, setChargeFilter] = useState<FilterType>('전체');
+  const [availableOnly, setAvailableOnly] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<'전체' | '사용가능' | '충전중' | '중지' | '점검'>('전체');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCharger, setSelectedCharger] = useState<Charger | null>(null);
+
+  // 설정 로드 완료 시, 그리고 설정값 변경 시 필터 동기화
+  useEffect(() => {
+    if (!isSettingsLoaded) return;
+    setChargeFilter(initialChargeFilter);
+  }, [isSettingsLoaded, initialChargeFilter]);
+
+  useEffect(() => {
+    if (!isSettingsLoaded) return;
+    setAvailableOnly(showAvailableOnly);
+    if (showAvailableOnly) {
+      setStatusFilter('사용가능');
+    } else {
+      setStatusFilter('전체');
+    }
+  }, [isSettingsLoaded, showAvailableOnly]);
 
   // 폴링용 ref: interval이 항상 최신 chargers를 참조하도록 (매 업데이트마다 interval 재등록 방지)
   const chargersRef = useRef<Charger[]>([]);
@@ -143,6 +163,7 @@ export function useChargerData(
     .filter(c => {
       if (statusFilter === '전체') return true;
       const repStat = String(getStationRepresentativeStat(c.chargers));
+      if (repStat === '9') return true; // 상태 로딩 전이면 통과
       if (statusFilter === '사용가능') return repStat === '2';
       if (statusFilter === '충전중') return repStat === '3';
       if (statusFilter === '중지') return repStat === '1' || repStat === '4';
@@ -207,6 +228,8 @@ export function useChargerData(
     // 필터 / 검색
     chargeFilter,
     setChargeFilter,
+    availableOnly,
+    setAvailableOnly,
     statusFilter,
     setStatusFilter,
     searchQuery,

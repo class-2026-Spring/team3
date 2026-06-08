@@ -5,6 +5,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 interface ChargerListProps {
   chargers: Charger[];
+  allChargers?: Charger[];
+  lang?: string;
   zoomState: ZoomState;
   selectCity: (city: '전체' | '제주시' | '서귀포시') => void;
   selectDistrict: (district: string) => void;
@@ -23,7 +25,7 @@ interface ChargerListProps {
 }
 
 export default function ChargerList({
-  chargers, zoomState,
+  chargers, allChargers, lang = 'ko', zoomState,
   selectCity, selectDistrict, resetToCity, resetToDistrict,
   chargeFilter, setChargeFilter, onSelectCharger,
   isFavorite, onToggleFavorite,
@@ -37,43 +39,62 @@ export default function ChargerList({
   if (level === 'city') {
     const jejuList = chargers.filter(c => getCity(c.district) === '제주시');
     const seoList = chargers.filter(c => getCity(c.district) === '서귀포시');
+    const baseList = allChargers ?? chargers;
+    const pureJejuList = baseList.filter(c => getCity(c.district) === '제주시');
+    const pureSeoList = baseList.filter(c => getCity(c.district) === '서귀포시');
+    const applyStatusFilter = (list: typeof baseList) => list.filter(c => {
+      if (statusFilter === '전체') return true;
+      const repStat = String(getStationRepresentativeStat(c.chargers));
+      if (repStat === '9') return true;
+      if (statusFilter === '사용가능') return repStat === '2';
+      if (statusFilter === '충전중') return repStat === '3';
+      if (statusFilter === '중지') return repStat === '1' || repStat === '4';
+      if (statusFilter === '점검') return repStat === '5';
+      return true;
+    });
+    const rawJejuList = applyStatusFilter(pureJejuList);
+    const rawSeoList = applyStatusFilter(pureSeoList);
 
     return (
       <div className="flex flex-col bg-white dark:bg-gray-900 h-full transition-colors">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} />
+          <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} lang={lang} />
         </div>
         <div className="p-4 overflow-y-auto flex-1 bg-gray-50 dark:bg-gray-800/30 flex flex-col gap-3">
-          <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">시 선택</p>
+          <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{t('chargerList.citySelect')}</p>
           {[
-            { name: '제주시', list: jejuList, color: '#3b82f6' },
-            { name: '서귀포시', list: seoList, color: '#14b8a6' },
-          ].map(({ name, list, color }) => {
-            const fast = list.filter(c => c.chargers.some(p => isFastCharger(p.type))).length;
-            const slow = list.filter(c => c.chargers.some(p => !isFastCharger(p.type))).length;
+            { name: '제주시', displayName: t('chargerList.jeju'), list: jejuList, rawList: rawJejuList, pureList: pureJejuList, color: '#3b82f6' },
+            { name: '서귀포시', displayName: t('chargerList.seogwipo'), list: seoList, rawList: rawSeoList, pureList: pureSeoList, color: '#14b8a6' },
+          ].map(({ name, displayName, list, rawList, pureList, color }) => {
+            const fast = rawList.filter(c => c.chargers.some(p => isFastCharger(p.type))).length;
+            const slow = rawList.filter(c => c.chargers.some(p => !isFastCharger(p.type))).length;
             return (
               <div key={name} onClick={() => selectCity(name as '제주시' | '서귀포시')}
                 className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md transition-all group">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: color }} />
-                    <span className="text-[15px] font-extrabold text-gray-900 dark:text-gray-100">{name}</span>
+                    <span className="text-[15px] font-extrabold text-gray-900 dark:text-gray-100">{displayName}</span>
                   </div>
-                  <span className="text-[11px] text-gray-400 dark:text-gray-500 group-hover:text-blue-500 transition-colors">선택 →</span>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500 group-hover:text-blue-500 transition-colors">{t('charger.fast') === 'Fast' ? 'Select →' : '선택 →'}</span>
                 </div>
                 <div className="flex gap-3">
                   <div className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
-                    <p className="text-[20px] font-black text-gray-800 dark:text-gray-200">{list.length}</p>
-                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5">전체 충전소</p>
+                    <p className="text-[20px] font-black text-gray-800 dark:text-gray-200">{pureList.length}</p>
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5">{t('chargerList.allStations')}</p>
                   </div>
-                  <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2.5 text-center border border-orange-100 dark:border-orange-900/50">
-                    <p className="text-[20px] font-black text-orange-500 dark:text-orange-400">{fast}</p>
-                    <p className="text-[10px] font-semibold text-orange-400 dark:text-orange-500 mt-0.5">급속</p>
-                  </div>
-                  <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2.5 text-center border border-blue-100 dark:border-blue-900/50">
-                    <p className="text-[20px] font-black text-blue-500 dark:text-blue-400">{slow}</p>
-                    <p className="text-[10px] font-semibold text-blue-400 dark:text-blue-500 mt-0.5">완속</p>
-                  </div>
+                  {chargeFilter !== '완속' && (
+                    <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2.5 text-center border border-orange-100 dark:border-orange-900/50">
+                      <p className="text-[20px] font-black text-orange-500 dark:text-orange-400">{fast}</p>
+                      <p className="text-[10px] font-semibold text-orange-400 dark:text-orange-500 mt-0.5">{t('chargerList.fast')}</p>
+                    </div>
+                  )}
+                  {chargeFilter !== '급속' && (
+                    <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2.5 text-center border border-blue-100 dark:border-blue-900/50">
+                      <p className="text-[20px] font-black text-blue-500 dark:text-blue-400">{slow}</p>
+                      <p className="text-[10px] font-semibold text-blue-400 dark:text-blue-500 mt-0.5">{t('chargerList.slow')}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -106,14 +127,14 @@ export default function ChargerList({
       <div className="flex flex-col bg-white dark:bg-gray-900 h-full transition-colors">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <div className="flex items-center gap-2 mb-2.5">
-            <button onClick={resetToCity} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">← 전체</button>
+            <button onClick={resetToCity} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">{t('chargerList.backToAll')}</button>
             <span className="text-gray-200 dark:text-gray-700">/</span>
-            <span className="text-[12px] font-bold text-gray-700 dark:text-gray-300">{selectedCity}</span>
+            <span className="text-[12px] font-bold text-gray-700 dark:text-gray-300">{selectedCity === '제주시' ? t('chargerList.jeju') : selectedCity === '서귀포시' ? t('chargerList.seogwipo') : selectedCity}</span>
           </div>
-          <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} />
+          <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} lang={lang} />
         </div>
         <div className="p-4 overflow-y-auto flex-1 bg-gray-50 dark:bg-gray-800/30">
-          <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">읍면동 선택 ({sortedDistricts.length}개)</p>
+          <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{t('chargerList.districtSelect')} ({sortedDistricts.length})</p>
           <div className="flex flex-col gap-2">
             {sortedDistricts.map(([districtName, list]) => {
               const fast = list.filter(c => c.chargers.some(p => isFastCharger(p.type))).length;
@@ -133,8 +154,8 @@ export default function ChargerList({
                       )}
                     </div>
                     <div className="flex gap-1.5 mt-1">
-                      {fast > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 border border-orange-100 dark:border-orange-800">급속 {fast}</span>}
-                      {slow > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 border border-blue-100 dark:border-blue-800">완속 {slow}</span>}
+                      {fast > 0 && chargeFilter !== '완속' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 border border-orange-100 dark:border-orange-800">{t('chargerList.fast')} {fast}</span>}
+                      {slow > 0 && chargeFilter !== '급속' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 border border-blue-100 dark:border-blue-800">{t('chargerList.slow')} {slow}</span>}
                     </div>
                   </div>
                   <div className="text-right">
@@ -163,20 +184,20 @@ export default function ChargerList({
     <div className="flex flex-col bg-white dark:bg-gray-900 h-full transition-colors">
       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <div className="flex items-center gap-2 mb-2.5">
-          <button onClick={resetToCity} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">← 전체</button>
+          <button onClick={resetToCity} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">{t('chargerList.backToAll')}</button>
           <span className="text-gray-200 dark:text-gray-700">/</span>
-          <button onClick={resetToDistrict} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">{selectedCity}</button>
+          <button onClick={resetToDistrict} className="text-[12px] font-semibold text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">{selectedCity === '제주시' ? t('chargerList.jeju') : selectedCity === '서귀포시' ? t('chargerList.seogwipo') : selectedCity}</button>
           <span className="text-gray-200 dark:text-gray-700">/</span>
           <span className="text-[12px] font-bold text-gray-700 dark:text-gray-300">{selectedDistrict}</span>
         </div>
-        <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} />
+        <FilterTabs chargeFilter={chargeFilter} setChargeFilter={setChargeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} zoomState={zoomState} selectCity={selectCity} resetToCity={resetToCity} t={t} lang={lang} />
       </div>
       <div className="p-4 overflow-y-auto flex-1 bg-gray-50 dark:bg-gray-800/30">
         <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-1.5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-500">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
           </svg>
-          {selectedDistrict} <span className="text-teal-500 font-extrabold ml-1">{chargers.length}</span>곳
+          {selectedDistrict} <span className="text-teal-500 font-extrabold ml-1">{chargers.length}</span>{t('chargerList.stations')}
         </p>
 
         {chargers.length === 0 ? (
@@ -206,8 +227,8 @@ export default function ChargerList({
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{charger.address}</p>
                     <div className="flex gap-2 mt-1.5">
-                      {stats.fastTotal > 0 && <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-800">급속 {stats.fastAvail}/{stats.fastTotal}</span>}
-                      {stats.slowTotal > 0 && <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800">완속 {stats.slowAvail}/{stats.slowTotal}</span>}
+                      {stats.fastTotal > 0 && chargeFilter !== '완속' && <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-800">{t('chargerList.fast')} {stats.fastAvail}/{stats.fastTotal}</span>}
+                      {stats.slowTotal > 0 && chargeFilter !== '급속' && <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800">{t('chargerList.slow')} {stats.slowAvail}/{stats.slowTotal}</span>}
                     </div>
                   </div>
                   <div className="ml-2 shrink-0 flex flex-col items-end gap-1.5">
@@ -247,7 +268,7 @@ export default function ChargerList({
                         </svg>
                       )}
                     </button>
-                    <span className="text-[12px] font-bold" style={{ color: getStatColor(repStat) }}>{getStatLabel(repStat)}</span>
+                    <span className="text-[12px] font-bold" style={{ color: getStatColor(repStat) }}>{getStatLabel(repStat, lang)}</span>
                   </div>
                 </div>
               );
@@ -264,15 +285,88 @@ export default function ChargerList({
 
 type StatusType = '전체' | '사용가능' | '충전중' | '중지' | '점검';
 
+const STATUS_OPTIONS: { value: StatusType; label: string; color: string }[] = [
+  { value: '전체', labelKo: '상태', labelEn: 'Status', color: '' },
+  { value: '사용가능', labelKo: '사용가능', labelEn: 'Available', color: '#22c55e' },
+  { value: '충전중', labelKo: '충전중', labelEn: 'Charging', color: '#3b82f6' },
+  { value: '중지', labelKo: '중지', labelEn: 'Stopped', color: '#ef4444' },
+  { value: '점검', labelKo: '점검', labelEn: 'Maintenance', color: '#f97316' },
+];
+
+function StatusDropdown({ statusFilter, setStatusFilter, lang }: {
+  statusFilter: StatusType;
+  setStatusFilter: (f: StatusType) => void;
+  lang: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const current = STATUS_OPTIONS.find(o => o.value === statusFilter) ?? STATUS_OPTIONS[0];
+  const getLabel = (opt: typeof STATUS_OPTIONS[0]) => lang === 'en' ? opt.labelEn : opt.labelKo;
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex-[1.2]">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-center justify-between bg-gray-50 dark:bg-gray-800 border text-[11px] font-bold rounded-lg pl-2.5 pr-2 py-2 transition-all hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none ${
+          statusFilter !== '전체'
+            ? 'border-teal-500 ring-1 ring-teal-500/20 text-teal-600 dark:text-teal-400'
+            : 'border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200'
+        }`}
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          {current.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: current.color }} />}
+          {getLabel(current)}
+        </span>
+        <svg className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+4px)] w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+          {STATUS_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { setStatusFilter(opt.value); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                statusFilter === opt.value
+                  ? 'text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/20'
+                  : 'text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {opt.color
+                ? <span className="w-2 h-2 rounded-full shrink-0" style={{ background: opt.color }} />
+                : <span className="w-2 h-2 shrink-0" />
+              }
+              {getLabel(opt)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 function FilterTabs({
   chargeFilter, setChargeFilter,
   statusFilter, setStatusFilter,
-  zoomState, selectCity, resetToCity, t
+  zoomState, selectCity, resetToCity, t, lang
 }: {
   chargeFilter: FilterType; setChargeFilter: (f: FilterType) => void;
   statusFilter: StatusType; setStatusFilter: (f: StatusType) => void;
   zoomState: ZoomState; selectCity: (c: '전체' | '제주시' | '서귀포시') => void; resetToCity: () => void;
   t: (key: string) => string;
+  lang: string;
 }) {
   const currentCity = zoomState.selectedCity === '전체' && zoomState.level === 'city' ? '전체' : zoomState.selectedCity;
 
@@ -287,9 +381,9 @@ function FilterTabs({
         <select value={currentCity} onChange={(e) => handleCityChange(e.target.value)}
           className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          <option value="전체">지역</option>
-          <option value="제주시">제주시</option>
-          <option value="서귀포시">서귀포시</option>
+          <option value="전체">{t('charger.fast') === 'Fast' ? 'City' : '지역'}</option>
+          <option value="제주시">{t('chargerList.jeju')}</option>
+          <option value="서귀포시">{t('chargerList.seogwipo')}</option>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-gray-400 dark:text-gray-500">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -300,29 +394,16 @@ function FilterTabs({
         <select value={chargeFilter} onChange={(e) => setChargeFilter(e.target.value as FilterType)}
           className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          <option value="전체">유형</option>
-          <option value="급속">급속</option>
-          <option value="완속">완속</option>
+          <option value="전체">{t('charger.fast') === 'Fast' ? 'Type' : '유형'}</option>
+          <option value="급속">{t('charger.fast')}</option>
+          <option value="완속">{t('charger.slow')}</option>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-gray-400 dark:text-gray-500">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </div>
       </div>
 
-      <div className="relative flex-[1.2]">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusType)}
-          className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-[11px] font-bold rounded-lg pl-2.5 pr-6 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <option value="전체">상태</option>
-          <option value="사용가능">🟢 (사용가능)</option>
-          <option value="충전중">🔵 (충전중)</option>
-          <option value="중지">🔴 (중지)</option>
-          <option value="점검">🟠 (점검)</option>
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-gray-400 dark:text-gray-500">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-        </div>
-      </div>
+      <StatusDropdown statusFilter={statusFilter} setStatusFilter={setStatusFilter} lang={lang} />
     </div>
   );
 }

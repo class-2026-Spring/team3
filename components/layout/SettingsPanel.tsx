@@ -155,7 +155,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{t('settings.mapFilter')}</p>
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold mb-2">기본 충전 속도 필터</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold mb-2">{t('settings.mapFilter_speed')}</p>
                 <ChipGroup<MapFilter>
                   options={[
                     { value: '전체', label: t('settings.mapFilter_all') },
@@ -168,8 +168,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">사용 가능한 충전소만 표시</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">지도에서 사용 가능 상태만 필터</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('settings.mapFilter_available')}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('settings.mapFilter_available_desc')}</p>
                 </div>
                 <Toggle
                   checked={settings.mapShowAvailableOnly}
@@ -247,7 +247,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
             onClick={resetSettings}
             className="w-full py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-900 rounded-xl transition-colors"
           >
-            설정 초기화
+{t('settings.reset')}
           </button>
         </div>
       </div>

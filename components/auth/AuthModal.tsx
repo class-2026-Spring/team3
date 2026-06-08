@@ -70,7 +70,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <div className={`fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-sm p-4 transition-colors ${session && !profile ? 'bg-[#F8F9FA]/95' : 'bg-black/40'}`} onClick={session && !profile ? undefined : onClose}>
-      <div className={`${session && !profile ? 'w-full max-w-4xl bg-transparent shadow-none' : 'bg-white w-full max-w-sm rounded-[24px] shadow-2xl'} overflow-hidden relative transition-all duration-500`} onClick={e => e.stopPropagation()}>
+      <div className={`${session && !profile ? 'w-full max-w-4xl bg-transparent shadow-none' : 'bg-white dark:bg-gray-900 w-full max-w-sm rounded-[24px] shadow-2xl'} overflow-hidden relative transition-all duration-500`} onClick={e => e.stopPropagation()}>
         {!(session && !profile) && (
           <button 
             onClick={onClose}
@@ -86,8 +86,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <div className="w-12 h-12 bg-teal-400 rounded-xl mx-auto flex items-center justify-center text-white mb-4 shadow-lg shadow-teal-400/30">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
               </div>
-              <h2 className="text-2xl font-black text-gray-900">로그인</h2>
-              <p className="text-sm text-gray-500 mt-2">제주 전기차 충전소 커뮤니티에 참여해보세요.</p>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100">로그인</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">제주 전기차 충전소 커뮤니티에 참여해보세요.</p>
             </div>
           )}
 
@@ -122,15 +122,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           ) : !profile ? (
             <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in zoom-in-95 duration-500">
-              <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">프로필을 선택해주세요</h1>
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-gray-100 mb-4 tracking-tight">프로필을 선택해주세요</h1>
               
-              <p className="text-gray-500 font-medium mb-10 md:mb-16 bg-gray-100 px-5 py-2 rounded-full border border-gray-200 text-sm md:text-base">
+              <p className="text-gray-500 dark:text-gray-400 font-medium mb-10 md:mb-16 bg-gray-100 dark:bg-gray-800 px-5 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm md:text-base">
                 현재 로그인된 계정: <span className="text-gray-800 font-bold ml-1">{session?.user?.email || '알 수 없음'}</span>
               </p>
               
               <form onSubmit={handleCreateProfile} className="flex flex-col items-center w-full max-w-2xl gap-8 md:gap-10">
                 {/* Mode Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-xl w-64 mx-auto mb-2">
+                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-64 mx-auto mb-2">
                   <button type="button" onClick={() => setAvatarMode('basic')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${avatarMode === 'basic' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>기본 캐릭터</button>
                   <button type="button" onClick={() => setAvatarMode('custom')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${avatarMode === 'custom' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>직접 만들기</button>
                 </div>
@@ -170,7 +170,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
                       placeholder="닉네임 입력"
-                      className="w-full bg-white text-gray-900 text-xl md:text-2xl font-bold px-6 py-4 md:py-5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all placeholder:text-gray-400 text-center shadow-sm"
+                      className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl md:text-2xl font-bold px-6 py-4 md:py-5 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 text-center shadow-sm"
                       maxLength={15}
                     />
                   </div>
@@ -189,7 +189,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </form>
               <button 
                 onClick={() => { signOut(); onClose(); }} 
-                className="mt-6 text-gray-400 hover:text-gray-600 text-sm font-medium transition-colors"
+                className="mt-6 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-sm font-medium transition-colors"
               >
                 다른 계정으로 로그인하기 (로그아웃)
               </button>

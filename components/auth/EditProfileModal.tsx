@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
+import { supabase } from '../../lib/supabase';
 
 import { getAvatarUrl } from '../../lib/utils';
 import AvatarCustomizer from './AvatarCustomizer';
@@ -12,6 +14,7 @@ interface EditProfileModalProps {
 
 export default function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const { session, profile, updateProfile, checkNicknameUnique } = useAuth();
+  const { t } = useTranslation();
 
   const [nickname, setNickname] = useState('');
   const [avatars, setAvatars] = useState<string[]>(['a.png', 'b.png', 'c.png', 'd.png', 'e.png']);
@@ -33,23 +36,31 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
       .catch(console.error);
   }, []);
 
-  // Sync state when profile is available or modal opens
+  // 모달이 열릴 때 supabase에서 직접 최신 프로필 조회
   useEffect(() => {
-    if (isOpen && profile) {
-      setNickname(profile.nickname || '');
-      const url = profile.avatar_url || 'a.png';
-      setSelectedAvatar(url);
-      if (url.includes('api.dicebear.com')) {
-        setAvatarMode('custom');
-        setCustomAvatarUrl(url);
-      } else {
-        setAvatarMode('basic');
-      }
-      setErrorMsg('');
-    }
-  }, [isOpen, profile]);
+    if (!isOpen || !session?.user) return;
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setNickname(data.nickname || '');
+          const url = data.avatar_url || 'a.png';
+          setSelectedAvatar(url);
+          if (url.includes('api.dicebear.com')) {
+            setAvatarMode('custom');
+            setCustomAvatarUrl(url);
+          } else {
+            setAvatarMode('basic');
+          }
+        }
+        setErrorMsg('');
+      });
+  }, [isOpen]);
 
-  if (!isOpen || !profile) return null;
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +93,9 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h2 className="text-lg font-bold text-gray-900">프로필 수정</h2>
+      <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden relative max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('profile.editTitle')}</h2>
           <button
             onClick={onClose}
             className="p-2 -mr-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
@@ -93,12 +104,12 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1" onClick={e => e.stopPropagation()}>
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div className="w-full">
-              <div className="flex bg-gray-100 p-1 rounded-xl w-full mb-4">
-                <button type="button" onClick={() => setAvatarMode('basic')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${avatarMode === 'basic' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>기본 캐릭터</button>
-                <button type="button" onClick={() => setAvatarMode('custom')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${avatarMode === 'custom' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>직접 만들기</button>
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full mb-4">
+                <button type="button" onClick={() => setAvatarMode('basic')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${avatarMode === 'basic' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t('profile.basicCharacter')}</button>
+                <button type="button" onClick={() => setAvatarMode('custom')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${avatarMode === 'custom' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t('profile.customMake')}</button>
               </div>
 
               {avatarMode === 'basic' ? (
@@ -125,16 +136,16 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-gray-700 mb-2">닉네임</label>
+              <label className="block text-[13px] font-bold text-gray-700 dark:text-gray-300 mb-2">{t('profile.nickname')}</label>
               <input
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="사용할 닉네임을 입력하세요"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 maxLength={15}
               />
-              <p className="text-[11px] text-gray-400 mt-2 text-center">현재 계정: {session?.user?.email}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 text-center">{t('profile.currentAccount')}: {session?.user?.email}</p>
             </div>
 
             {errorMsg && (
@@ -146,7 +157,7 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
               disabled={isSubmitting || !nickname?.trim()}
               className="w-full bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-sm"
             >
-              {isSubmitting ? '저장 중...' : '프로필 저장'}
+              {isSubmitting ? '...' : t('profile.saveProfile')}
             </button>
           </form>
         </div>

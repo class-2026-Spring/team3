@@ -60,8 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .single();
     
-    // 닉네임이 설정되어 있어야만 유효한 프로필로 간주
-    if (!error && data && data.nickname) {
+    // DB에 row가 있으면 프로필로 간주 (닉네임 없어도)
+    if (!error && data) {
       setProfile(data as UserProfile);
     } else {
       setProfile(null);

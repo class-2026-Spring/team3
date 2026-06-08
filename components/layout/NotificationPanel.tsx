@@ -13,8 +13,14 @@ interface Props {
   onClose: () => void;
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, lang: string = 'ko'): string {
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (lang === 'en') {
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
   if (diff < 60) return '방금 전';
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
@@ -26,11 +32,13 @@ function NotificationItem({
   onRead,
   onClick,
   onRemove,
+  lang,
 }: {
   notif: AppNotification;
   onRead: (id: string) => void;
   onClick: (stationId: string) => void;
   onRemove: (id: string) => void;
+  lang: string;
 }) {
   const isAvailable = notif.type === 'available';
   const isUnavailable = notif.type === 'unavailable';
@@ -112,7 +120,7 @@ function NotificationItem({
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-bold text-gray-800 dark:text-gray-100 truncate">{notif.stationName}</p>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{notif.message}</p>
-            <p className="text-[10px] text-gray-300 dark:text-gray-500 mt-1 font-medium">{timeAgo(notif.createdAt)}</p>
+            <p className="text-[10px] text-gray-300 dark:text-gray-500 mt-1 font-medium">{timeAgo(notif.createdAt, lang)}</p>
           </div>
 
           {/* 읽지 않음 점 */}
@@ -129,7 +137,7 @@ export default function NotificationPanel({ open, onClose }: Props) {
   const { notifications, unreadCount, markRead, markAllRead, clearAll, removeNotification } = useAppContext();
   const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   // 필터 상태
   const [filterStatus, setFilterStatus] = useState<'all' | 'unread' | 'read'>('all');
@@ -290,6 +298,7 @@ export default function NotificationPanel({ open, onClose }: Props) {
                 onRead={markRead}
                 onClick={handleNotificationClick}
                 onRemove={removeNotification}
+                lang={lang}
               />
             ))
           )}

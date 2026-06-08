@@ -26,6 +26,10 @@ export const translations = {
       notif_enabled: '푸시 알림 켜기',
       notif_status: '즐겨찾기 상태 변경 시 알림',
       notif_comments: '즐겨찾기 새 후기 등록 시 알림',
+      mapFilter_available: '사용 가능한 충전소만 표시',
+      mapFilter_available_desc: '지도에서 사용 가능 상태만 필터',
+      mapFilter_speed: '기본 충전 속도 필터',
+      reset: '설정 초기화',
       close: '닫기',
     },
     notifications: {
@@ -89,6 +93,38 @@ export const translations = {
       reset: '초기화',
       commentPlaceholder: '충전소 후기를 남겨주세요',
     },
+    profile: {
+      editTitle: '프로필 수정',
+      basicCharacter: '기본 캐릭터',
+      customMake: '직접 만들기',
+      nickname: '닉네임',
+      currentAccount: '현재 계정',
+      saveProfile: '프로필 저장',
+      face: '얼굴',
+      hair: '머리',
+      accessory: '장신구',
+      colors: '색상',
+      eyes: '눈',
+      mouth: '입',
+      style: '스타일',
+      hairLabel: '헤어',
+      glasses: '안경',
+      earrings: '귀걸이',
+      skin: '스킨',
+      hairColor: '헤어컬러',
+      bgColor: '배경색',
+    },
+    chargerList: {
+      citySelect: '시 선택',
+      districtSelect: '읍면동 선택',
+      allStations: '전체 충전소',
+      fast: '급속',
+      slow: '완속',
+      jeju: '제주시',
+      seogwipo: '서귀포시',
+      backToAll: '← 전체',
+      stations: '곳',
+    },
     general: {
       loading: '로딩 중...',
       error: '오류가 발생했습니다',
@@ -130,6 +166,10 @@ export const translations = {
       notif_enabled: 'Enable Push Notifications',
       notif_status: 'Status Change Alerts for Favorites',
       notif_comments: 'New Review Alerts for Favorites',
+      mapFilter_available: 'Show Available Only',
+      mapFilter_available_desc: 'Filter map to show only available stations',
+      mapFilter_speed: 'Default Charge Speed Filter',
+      reset: 'Reset Settings',
       close: 'Close',
     },
     notifications: {
@@ -193,6 +233,38 @@ export const translations = {
       reset: 'Reset',
       commentPlaceholder: 'Leave a review for this station',
     },
+    profile: {
+      editTitle: 'Edit Profile',
+      basicCharacter: 'Basic Character',
+      customMake: 'Custom',
+      nickname: 'Nickname',
+      currentAccount: 'Account',
+      saveProfile: 'Save Profile',
+      face: 'Face',
+      hair: 'Hair',
+      accessory: 'Accessory',
+      colors: 'Colors',
+      eyes: 'Eyes',
+      mouth: 'Mouth',
+      style: 'Style',
+      hairLabel: 'Hair Style',
+      glasses: 'Glasses',
+      earrings: 'Earrings',
+      skin: 'Skin',
+      hairColor: 'Hair Color',
+      bgColor: 'Background',
+    },
+    chargerList: {
+      citySelect: 'Select City',
+      districtSelect: 'Select District',
+      allStations: 'All Stations',
+      fast: 'Fast',
+      slow: 'Slow',
+      jeju: 'Jeju City',
+      seogwipo: 'Seogwipo City',
+      backToAll: '← All',
+      stations: 'stations',
+    },
     general: {
       loading: 'Loading...',
       error: 'An error occurred',
@@ -211,9 +283,11 @@ export const translations = {
 
 export type TranslationKey =
   | 'sidebar.profile' | 'sidebar.login' | 'sidebar.logout' | 'sidebar.main' | 'sidebar.map' | 'sidebar.favorites' | 'sidebar.notifications' | 'sidebar.settings' | 'sidebar.myComments'
-  | 'settings.title' | 'settings.language' | 'settings.theme' | 'settings.theme_light' | 'settings.theme_dark' | 'settings.theme_system' | 'settings.mapFilter' | 'settings.mapFilter_all' | 'settings.mapFilter_fast' | 'settings.mapFilter_slow' | 'settings.notifications' | 'settings.notif_enabled' | 'settings.notif_status' | 'settings.notif_comments' | 'settings.close'
+  | 'settings.title' | 'settings.language' | 'settings.theme' | 'settings.theme_light' | 'settings.theme_dark' | 'settings.theme_system' | 'settings.mapFilter' | 'settings.mapFilter_all' | 'settings.mapFilter_fast' | 'settings.mapFilter_slow' | 'settings.notifications' | 'settings.notif_enabled' | 'settings.notif_status' | 'settings.notif_comments' | 'settings.mapFilter_available' | 'settings.mapFilter_available_desc' | 'settings.mapFilter_speed' | 'settings.reset' | 'settings.close'
   | 'notifications.title' | 'notifications.markAllRead' | 'notifications.clearAll' | 'notifications.empty' | 'notifications.emptyDesc' | 'notifications.period' | 'notifications.period_all' | 'notifications.period_today' | 'notifications.period_1day' | 'notifications.period_1week' | 'notifications.period_1month' | 'notifications.period_1year' | 'notifications.status' | 'notifications.status_all' | 'notifications.status_unread' | 'notifications.status_read'
   | 'charger.listTitle' | 'charger.total' | 'charger.stations' | 'charger.searchPlaceholder' | 'charger.searchEmpty' | 'charger.availableNow' | 'charger.fast' | 'charger.slow' | 'charger.direction' | 'charger.community' | 'charger.writeReview' | 'charger.loginRequired' | 'charger.submit' | 'charger.reply' | 'charger.like' | 'charger.loadingMap' | 'charger.waitAMoment' | 'charger.syncingStatus' | 'charger.viewAllJeju' | 'charger.viewCityAndBack' | 'charger.noStations' | 'charger.favoriteLoginToast'
   | 'charger.confirmDeleteComment' | 'charger.editFailed' | 'charger.loginRequiredToLike' | 'charger.confirmReport' | 'charger.reportSuccess' | 'charger.edit' | 'charger.delete' | 'charger.report' | 'charger.cancel' | 'charger.save' | 'charger.writeReply' | 'charger.replyPlaceholder' | 'charger.noCommentsYet' | 'charger.beTheFirst' | 'charger.loginToComment' | 'charger.setupProfile' | 'charger.rating' | 'charger.reset' | 'charger.commentPlaceholder'
   | 'general.loading' | 'general.error'
-  | 'mycomments.title' | 'mycomments.totalCount' | 'mycomments.comments' | 'mycomments.emptyTitle' | 'mycomments.emptyDesc' | 'mycomments.deleteConfirm' | 'mycomments.deleteButton';
+  | 'mycomments.title' | 'mycomments.totalCount' | 'mycomments.comments' | 'mycomments.emptyTitle' | 'mycomments.emptyDesc' | 'mycomments.deleteConfirm' | 'mycomments.deleteButton'
+  | 'profile.editTitle' | 'profile.basicCharacter' | 'profile.customMake' | 'profile.nickname' | 'profile.currentAccount' | 'profile.saveProfile' | 'profile.face' | 'profile.hair' | 'profile.accessory' | 'profile.colors' | 'profile.eyes' | 'profile.mouth' | 'profile.style' | 'profile.hairLabel' | 'profile.glasses' | 'profile.earrings' | 'profile.skin' | 'profile.hairColor' | 'profile.bgColor'
+  | 'chargerList.citySelect' | 'chargerList.districtSelect' | 'chargerList.allStations' | 'chargerList.fast' | 'chargerList.slow' | 'chargerList.jeju' | 'chargerList.seogwipo' | 'chargerList.backToAll' | 'chargerList.stations';

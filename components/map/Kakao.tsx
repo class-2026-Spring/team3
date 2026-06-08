@@ -18,6 +18,7 @@ interface KakaoMapProps {
   resetToDistrict: () => void;
   selectedCharger: Charger | null;
   setSelectedCharger: (c: Charger | null) => void;
+  lang?: string;
 }
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
@@ -37,6 +38,7 @@ export default function KakaoMap({
   resetToDistrict,
   selectedCharger,
   setSelectedCharger,
+  lang = 'ko',
 }: KakaoMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -262,7 +264,7 @@ export default function KakaoMap({
             onmouseover="this.style.transform='scale(1.08)'"
             onmouseout="this.style.transform='scale(1)'">
             <span style="color:#fff;font-size:22px;font-weight:900;line-height:1;">${count}</span>
-            <span style="color:rgba(255,255,255,0.9);font-size:11px;font-weight:700;margin-top:2px;">${cityName}</span>
+            <span style="color:rgba(255,255,255,0.9);font-size:11px;font-weight:700;margin-top:2px;">${lang === 'en' ? (cityName === '제주시' ? 'Jeju' : 'Seogwipo') : cityName}</span>
           </div>`;
         const overlay = new window.kakao.maps.CustomOverlay({
           position: new window.kakao.maps.LatLng(center.lat, center.lng),

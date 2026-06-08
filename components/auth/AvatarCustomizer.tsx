@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { DICEBEAR_OPTIONS } from '../../lib/dicebear-options';
 
@@ -10,6 +11,7 @@ interface AvatarCustomizerProps {
 }
 
 export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname }: AvatarCustomizerProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'face' | 'hair' | 'accessory' | 'colors'>('face');
 
   // States for each trait
@@ -73,11 +75,14 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
     }
   }, [initialUrl]);
 
-  const generateUrl = () => {
+  const defaultNicknameRef = React.useRef(defaultNickname);
+  useEffect(() => { defaultNicknameRef.current = defaultNickname; }, [defaultNickname]);
+
+  const generateUrl = useCallback(() => {
     const params = new URLSearchParams();
 
     // Always use a fixed seed to ensure base is same, then override with traits
-    params.set('seed', defaultNickname || 'Adventurer');
+    params.set('seed', defaultNicknameRef.current || 'Adventurer');
 
     params.set('eyes', DICEBEAR_OPTIONS.eyes[eyesIdx]);
     params.set('mouth', DICEBEAR_OPTIONS.mouth[mouthIdx]);
@@ -111,11 +116,11 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
     params.set('backgroundColor', bgColor === 'transparent' ? 'transparent' : bgColor);
 
     return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`;
-  };
+  }, [eyesIdx, mouthIdx, hairIdx, glassesIdx, earringsIdx, featuresIdx, skinColor, hairColor, bgColor]);
 
   useEffect(() => {
     onChange(generateUrl());
-  }, [eyesIdx, mouthIdx, hairIdx, glassesIdx, earringsIdx, featuresIdx, skinColor, hairColor, bgColor, defaultNickname]);
+  }, [generateUrl, onChange]);
 
   // Randomize all traits
   const handleRandomize = () => {
@@ -159,13 +164,13 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
   const renderGrid = (label: string, idx: number, setIdx: (n: number) => void, options: string[], type: string) => {
     const open = expanded[type] !== false;
     return (
-      <div className="mb-6">
+      <div className="mb-4">
         <button
           type="button"
           onClick={() => setExpanded(prev => ({ ...prev, [type]: !open }))}
           className="flex items-center justify-between w-full mb-3 group outline-none"
         >
-          <span className="text-sm font-extrabold text-gray-800 tracking-tight group-hover:text-teal-600 transition-colors">{label}</span>
+          <span className="text-sm font-extrabold text-gray-800 dark:text-gray-200 tracking-tight group-hover:text-teal-600 transition-colors">{label}</span>
           <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-500 transition-colors">
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -181,7 +186,7 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
               if (opt === 'none') {
                 return (
                   <button
-                    key={opt}
+                    key={`${type}-${opt}-${i}`}
                     type="button"
                     onClick={() => setIdx(i)}
                     className={`aspect-square rounded-[1rem] border-2 flex items-center justify-center transition-all duration-200 ${idx === i ? 'border-teal-500 bg-teal-50 text-teal-600 shadow-sm ring-2 ring-teal-500/20' : 'border-gray-100 bg-gray-50/50 text-gray-300 hover:border-teal-200 hover:text-teal-400 hover:shadow-sm'}`}
@@ -193,10 +198,10 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
 
               return (
                 <button
-                  key={opt}
+                  key={`${type}-${opt}-${i}`}
                   type="button"
                   onClick={() => setIdx(i)}
-                  className={`relative aspect-square rounded-[1rem] border-2 overflow-hidden bg-white transition-all duration-200 ${idx === i ? 'border-teal-500 scale-[1.03] shadow-[0_8px_16px_-6px_rgba(20,184,166,0.3)] z-10 ring-2 ring-teal-500/20' : 'border-gray-100 hover:border-teal-300 hover:shadow-md hover:-translate-y-0.5'}`}
+                  className={`relative aspect-square rounded-[1rem] border-2 overflow-hidden bg-white dark:bg-gray-800 transition-all duration-200 ${idx === i ? 'border-teal-500 scale-[1.03] shadow-[0_8px_16px_-6px_rgba(20,184,166,0.3)] z-10 ring-2 ring-teal-500/20' : 'border-gray-100 dark:border-gray-700 hover:border-teal-300 hover:shadow-md hover:-translate-y-0.5'}`}
                 >
                   <img
                     src={getThumbnailUrl(type, opt)}
@@ -219,13 +224,13 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
     const isPickerOpen = pickerOpen === type;
 
     return (
-      <div className="mb-6">
+      <div className="mb-4">
         <button
           type="button"
           onClick={() => setExpanded(prev => ({ ...prev, [type]: !open }))}
           className="flex items-center justify-between w-full mb-3 group outline-none"
         >
-          <span className="text-sm font-extrabold text-gray-800 tracking-tight group-hover:text-teal-600 transition-colors">{label}</span>
+          <span className="text-sm font-extrabold text-gray-800 dark:text-gray-200 tracking-tight group-hover:text-teal-600 transition-colors">{label}</span>
           <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-500 transition-colors">
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -240,7 +245,7 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
             <div className="flex flex-wrap gap-3 items-center">
               {options.map(c => (
                 <button
-                  key={c}
+                  key={`${type}-color-${c}`}
                   type="button"
                   onClick={() => setColor(c)}
                   className={`w-9 h-9 rounded-full border-[3px] transition-all duration-200 ${currentColor === c ? 'scale-110 border-teal-500 shadow-[0_4px_12px_rgba(20,184,166,0.3)] z-10' : 'border-white ring-1 ring-gray-200 hover:scale-105 hover:ring-teal-300 hover:shadow-sm'}`}
@@ -264,7 +269,7 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
             </div>
 
             {isPickerOpen && (
-              <div className="p-4 bg-white border border-gray-100 rounded-[1.5rem] flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] relative mt-1">
+              <div className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-[1.5rem] flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] relative mt-1">
                 <style dangerouslySetInnerHTML={{
                   __html: `
                   .react-colorful { width: 100% !important; max-width: 100%; height: 180px !important; }
@@ -284,7 +289,7 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
                     color={`#${currentColor === 'transparent' || !currentColor ? 'ffffff' : currentColor}`}
                     onChange={(hex) => setColor(hex.replace('#', ''))}
                     prefixed
-                    className="w-full text-sm font-semibold outline-none text-gray-700 bg-transparent uppercase"
+                    className="w-full text-sm font-semibold outline-none text-gray-700 dark:text-gray-200 bg-transparent uppercase"
                   />
                 </div>
               </div>
@@ -296,53 +301,53 @@ export default function AvatarCustomizer({ initialUrl, onChange, defaultNickname
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-lg mx-auto">
-      <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-[2rem] overflow-hidden border-4 border-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] mb-6 bg-gray-50 shrink-0">
+    <div className="flex flex-col items-center w-full">
+      <div className="relative w-24 h-24 rounded-[1.25rem] overflow-hidden border-4 border-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] mb-3 bg-gray-50 shrink-0">
         <img src={generateUrl()} alt="Custom Avatar" className="w-full h-full object-cover transition-opacity duration-300" />
       </div>
 
-      <button type="button" onClick={handleRandomize} className="flex items-center justify-center w-10 h-10 bg-teal-600 text-white rounded-full mb-8 hover:bg-teal-500 hover:-translate-y-0.5 hover:shadow-md hover:shadow-teal-500/30 transition-all duration-300 group" aria-label="랜덤 생성">
+      <button type="button" onClick={handleRandomize} className="flex items-center justify-center w-8 h-8 bg-teal-600 text-white rounded-full mb-4 hover:bg-teal-500 hover:-translate-y-0.5 hover:shadow-md hover:shadow-teal-500/30 transition-all duration-300 group" aria-label="랜덤 생성">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-500 group-hover:rotate-[180deg]"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l-5.38 5.38" /></svg>
       </button>
 
-      <div className="w-full bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col h-[380px]">
-        <div className="flex bg-gray-50/80 p-2 m-3 mb-0 rounded-[1.25rem] shrink-0 border border-gray-100/50">
-          {['face', 'hair', 'accessory', 'colors'].map((t) => (
+      <div className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col h-[260px]">
+        <div className="flex bg-gray-50/80 dark:bg-gray-800/80 p-2 m-3 mb-0 rounded-[1.25rem] shrink-0 border border-gray-100/50 dark:border-gray-700/50">
+          {['face', 'hair', 'accessory', 'colors'].map((tabKey) => (
             <button
-              key={t}
+              key={tabKey}
               type="button"
-              onClick={() => setTab(t as any)}
-              className={`flex-1 py-2.5 text-[13px] font-bold rounded-[1rem] transition-all duration-200 ${tab === t ? 'text-teal-700 bg-white shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200/40'}`}
+              onClick={() => setTab(tabKey as any)}
+              className={`flex-1 py-2.5 text-[13px] font-bold rounded-[1rem] transition-all duration-200 ${tab === tabKey ? 'text-teal-700 dark:text-teal-400 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/40'}`}
             >
-              {t === 'face' ? '얼굴' : t === 'hair' ? '머리' : t === 'accessory' ? '장신구' : '색상'}
+              {tabKey === 'face' ? t('profile.face') : tabKey === 'hair' ? t('profile.hair') : tabKey === 'accessory' ? t('profile.accessory') : t('profile.colors')}
             </button>
           ))}
         </div>
 
-        <div className="p-6 pt-5 overflow-y-auto flex-1 custom-scrollbar">
+        <div className="p-4 pt-3 overflow-y-auto flex-1 custom-scrollbar">
           {tab === 'face' && (
             <div className="animate-in fade-in duration-200">
-              {renderGrid('눈', eyesIdx, setEyesIdx, DICEBEAR_OPTIONS.eyes, 'eyes')}
-              {renderGrid('입', mouthIdx, setMouthIdx, DICEBEAR_OPTIONS.mouth, 'mouth')}
-              {renderGrid('스타일', featuresIdx, setFeaturesIdx, DICEBEAR_OPTIONS.features, 'features')}
+              {renderGrid(t('profile.eyes'), eyesIdx, setEyesIdx, DICEBEAR_OPTIONS.eyes, 'eyes')}
+              {renderGrid(t('profile.mouth'), mouthIdx, setMouthIdx, DICEBEAR_OPTIONS.mouth, 'mouth')}
+              {renderGrid(t('profile.style'), featuresIdx, setFeaturesIdx, DICEBEAR_OPTIONS.features, 'features')}
             </div>
           )}
           {tab === 'hair' && (
             <div className="animate-in fade-in duration-200">
-              {renderGrid('헤어', hairIdx, setHairIdx, DICEBEAR_OPTIONS.hair, 'hair')}
+              {renderGrid(t('profile.hairLabel'), hairIdx, setHairIdx, DICEBEAR_OPTIONS.hair, 'hair')}
             </div>
           )}
           {tab === 'accessory' && (
             <div className="animate-in fade-in duration-200">
-              {renderGrid('안경', glassesIdx, setGlassesIdx, DICEBEAR_OPTIONS.glasses, 'glasses')}
-              {renderGrid('귀걸이', earringsIdx, setEarringsIdx, DICEBEAR_OPTIONS.earrings, 'earrings')}
+              {renderGrid(t('profile.glasses'), glassesIdx, setGlassesIdx, DICEBEAR_OPTIONS.glasses, 'glasses')}
+              {renderGrid(t('profile.earrings'), earringsIdx, setEarringsIdx, DICEBEAR_OPTIONS.earrings, 'earrings')}
             </div>
           )}
           {tab === 'colors' && (
             <div className="animate-in fade-in duration-200">
-              {renderColorGrid('스킨', skinColor, setSkinColor, DICEBEAR_OPTIONS.skinColor, 'skinColor')}
-              {renderColorGrid('헤어컬러', hairColor, setHairColor, DICEBEAR_OPTIONS.hairColor, 'hairColor')}
-              {renderColorGrid('배경색', bgColor, setBgColor, DICEBEAR_OPTIONS.backgroundColor, 'bgColor')}
+              {renderColorGrid(t('profile.skin'), skinColor, setSkinColor, DICEBEAR_OPTIONS.skinColor, 'skinColor')}
+              {renderColorGrid(t('profile.hairColor'), hairColor, setHairColor, DICEBEAR_OPTIONS.hairColor, 'hairColor')}
+              {renderColorGrid(t('profile.bgColor'), bgColor, setBgColor, DICEBEAR_OPTIONS.backgroundColor, 'bgColor')}
             </div>
           )}
         </div>

@@ -26,7 +26,18 @@ export const getStatColor = (stat: string): string => {
   }
 };
 
-export const getStatLabel = (stat: string): string => {
+export const getStatLabel = (stat: string, lang: string = 'ko'): string => {
+  if (lang === 'en') {
+    switch (stat) {
+      case '2': return 'Available';
+      case '3': return 'Charging';
+      case '4': return 'Stopped';
+      case '5': return 'Maintenance';
+      case '1': return 'Comm Error';
+      case '9': return 'Unknown';
+      default: return 'Unknown';
+    }
+  }
   switch (stat) {
     case '2': return '사용가능';
     case '3': return '충전중';

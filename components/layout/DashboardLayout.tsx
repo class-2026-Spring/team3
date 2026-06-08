@@ -24,6 +24,8 @@ export const CompareContext = React.createContext<{
   // page.tsx에서 실시간 charger 목록을 올려줌
   registerChargers: (chargers: Charger[]) => void;
   userLocation: { lat: number; lng: number } | null;
+  mapDefaultFilter: '전체' | '급속' | '완속';
+  mapShowAvailableOnly: boolean;
 } | null>(null);
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
@@ -75,25 +77,12 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     else if (session && profile) setShowAuthModal(false);
   }, [session, profile, loading]);
 
-  // 다크모드 제어
-  useEffect(() => {
-    const root = document.documentElement;
-    const applyTheme = (isSystemDark: boolean) => {
-      if (settings.theme === 'dark') root.classList.add('dark');
-      else if (settings.theme === 'light') root.classList.remove('dark');
-      else { if (isSystemDark) root.classList.add('dark'); else root.classList.remove('dark'); }
-    };
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    applyTheme(mediaQuery.matches);
-    const listener = (e: MediaQueryListEvent) => applyTheme(e.matches);
-    mediaQuery.addEventListener('change', listener);
-    return () => mediaQuery.removeEventListener('change', listener);
-  }, [settings.theme]);
-
   return (
     <CompareContext.Provider value={{
       compareIds, isInCompare, onToggleCompare, canAddCompare,
       showCompare, setShowCompare, registerChargers, userLocation,
+      mapDefaultFilter: settings.mapDefaultFilter,
+      mapShowAvailableOnly: settings.mapShowAvailableOnly,
     }}>
       <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans transition-colors duration-300">
         {/* 모바일 햄버거 버튼 */}

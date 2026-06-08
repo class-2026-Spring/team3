@@ -19,10 +19,10 @@ export default function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const { settings, addNotification } = useAppContext();
+  const { settings, addNotification, isSettingsLoaded } = useAppContext();
   const [userId, setUserId] = useState<string | null>(null);
   const { isFavorite, toggleFavorite } = useFavorites(userId);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const compare = useContext(CompareContext);
 
@@ -32,11 +32,17 @@ export default function Home() {
 
     const isNowAvailable = newStat === '2';
     const isInUse = newStat === '3';
-    const statusLabel = getStatLabel(newStat);
+    const statusLabel = getStatLabel(newStat, lang);
 
-    let message = `${stationName} 상태가 '${statusLabel}'(으)로 변경되었습니다.`;
-    if (isNowAvailable) message = `${stationName} 충전기에 빈자리가 생겼습니다.`;
-    else if (isInUse) message = `${stationName} 충전기 자리가 모두 찼습니다 (충전중).`;
+    let message = lang === 'en'
+      ? `${stationName} status changed to '${statusLabel}'.`
+      : `${stationName} 상태가 '${statusLabel}'(으)로 변경되었습니다.`;
+    if (isNowAvailable) message = lang === 'en'
+      ? `A charger is now available at ${stationName}.`
+      : `${stationName} 충전기에 빈자리가 생겼습니다.`;
+    else if (isInUse) message = lang === 'en'
+      ? `All chargers at ${stationName} are in use.`
+      : `${stationName} 충전기 자리가 모두 찼습니다 (충전중).`;
 
     addNotification({
       type: isNowAvailable ? 'available' : isInUse ? 'unavailable' : 'status_change',
@@ -54,7 +60,7 @@ export default function Home() {
     searchQuery, setSearchQuery,
     selectedCharger, setSelectedCharger,
     filteredChargers, searchResults, districtSearchResults,
-  } = useChargerData(handleStatusChange);
+  } = useChargerData(handleStatusChange, settings.mapDefaultFilter, isSettingsLoaded, settings.mapShowAvailableOnly);
 
   // chargers가 업데이트될 때마다 DashboardLayout에 올려보내서 실시간 반영
   useEffect(() => {
@@ -176,12 +182,13 @@ export default function Home() {
               resetToDistrict={resetToDistrict}
               selectedCharger={selectedCharger}
               setSelectedCharger={setSelectedCharger}
+              lang={lang}
             />
           </div>
 
           {selectedCharger && (() => {
             const stats = getStationStats(selectedCharger.chargers);
-            const repStat = getStationRepresentativeStat(selectedCharger.chargers);
+            const repStat = getStationRepresentativeStat(selectedCharger.chargers); // lang은 아래 getStatLabel 호출 시 사용
             const fav = isFavorite(selectedCharger.id);
             const inCompare = compare?.isInCompare(selectedCharger.id) ?? false;
             const canAdd = compare?.canAddCompare ?? true;
@@ -286,6 +293,8 @@ export default function Home() {
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
+                allChargers={chargers}
+                lang={lang}
                 zoomState={zoomState}
                 selectCity={selectCity}
                 selectDistrict={selectDistrict}
@@ -314,6 +323,8 @@ export default function Home() {
             <div className="absolute inset-0">
               <ChargerList
                 chargers={filteredChargers}
+                allChargers={chargers}
+                lang={lang}
                 zoomState={zoomState}
                 selectCity={selectCity}
                 selectDistrict={selectDistrict}
