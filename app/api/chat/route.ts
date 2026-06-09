@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    const { message, history, context } = await req.json();
+    const { message, context } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -22,7 +22,8 @@ export async function POST(req: Request) {
     // System prompt setup
     let systemPrompt = `You are a helpful EV (Electric Vehicle) Assistant for Jeju Island. 
 You answer questions about EV charging, provide recommendations, and use the provided context about nearby stations.
-Keep your answers concise, friendly, and formatted in Markdown.\n`;
+Keep your answers concise, friendly, and formatted in Markdown.
+`;
 
     if (context && context.length > 0) {
       systemPrompt += `\nHere are the nearest charging stations to the user:\n`;
@@ -32,29 +33,14 @@ Keep your answers concise, friendly, and formatted in Markdown.\n`;
       systemPrompt += `Use this information if the user asks for nearby stations.\n`;
     }
 
-    // Format chat history
-    let formattedContents: any[] = [];
-    if (history && Array.isArray(history)) {
-      formattedContents = history
-        .filter((h: any) => h.id !== '1') // Skip the initial hardcoded greeting to maintain valid user-model sequence
-        .map((h: any) => ({
-          role: h.role,
-          parts: [{ text: h.text }]
-        }));
-    }
-
-    // Add the current user message
-    formattedContents.push({
-      role: 'user',
-      parts: [{ text: message }]
-    });
-
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: formattedContents,
-      config: {
-        systemInstruction: systemPrompt,
-      }
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: systemPrompt + "\nUser Question: " + message }]
+        }
+      ]
     });
 
     return NextResponse.json({
