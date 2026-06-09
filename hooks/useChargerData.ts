@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 import { Charger, FilterType, isFastCharger, getStationRepresentativeStat } from '../types/charger';
 
 // 제주시/서귀포시 구분 (district 기준)
@@ -113,11 +114,16 @@ export function useChargerData(
     }
   };
 
-  // 60초마다 실시간 폴링 - chargers.length만 의존하여 interval은 최초 1회만 등록
+  // HTTP Polling을 통한 실시간 상태 주기적 업데이트 (Supabase Realtime Quota 한도 초과 방지)
   useEffect(() => {
     if (chargers.length === 0) return;
-    const interval = setInterval(() => fetchRealtimeStatus(chargersRef.current), 60000);
-    return () => clearInterval(interval);
+
+    // 1분(60초)마다 상태를 새로고침합니다.
+    const intervalId = setInterval(() => {
+      fetchRealtimeStatus(chargersRef.current);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [chargers.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 줌 레벨에 따른 필터링된 충전소
